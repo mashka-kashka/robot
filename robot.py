@@ -5,6 +5,7 @@ from picamera2 import Picamera2
 from gpiozero import CPUTemperature
 from datetime import datetime
 import cv2
+import os
 
 # Параметры кадра
 FRAME_WIDTH = 640
@@ -44,6 +45,7 @@ SEARCH_DELAY = 10
 hor_search_step = HOR_STEP
 vert_search_step = VERT_STEP
 faceview_time = datetime.now()
+say_hello = True
 
 while True:
     frame = picam2.capture_array()
@@ -66,6 +68,7 @@ while True:
             cv2.putText(frame, f'Лица не найдены {int(time_delta.total_seconds())} секунд', 
                 (10, 40), font, 0.5, text_color, 1, cv2.LINE_AA)          
         else:
+            say_hello = True
             cv2.putText(frame, 'Ищу лица', 
                 (10, 40), font, 0.5, text_color, 1, cv2.LINE_AA)
 
@@ -76,7 +79,7 @@ while True:
             elif hor_search_step < 0 and hor_position < MIN_HOR_ANGLE:
                 hor_position = MIN_HOR_ANGLE
                 hor_search_step = hor_search_step * -1
-                # Поиск по верикали
+                # Поиск по вертикали
                 vert_position = vert_position + vert_search_step
                 if vert_search_step > 0 and vert_position > MAX_VERT_ANGLE:
                     vert_position = MAX_VERT_ANGLE
@@ -86,8 +89,10 @@ while True:
                     vert_search_step = vert_search_step * -1
                 pwm.setServoPwm('1', vert_position)
             pwm.setServoPwm('0', hor_position)
-
     else:
+        if say_hello:
+            os.system('aplay ./audio/привет.wav')
+            say_hello = False
         faceview_time = datetime.now()
 
     left = FRAME_WIDTH
