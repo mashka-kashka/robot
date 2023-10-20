@@ -62,6 +62,11 @@ def print_cpu_temperature():
 
 # Поиск лиц
 def search_faces(): 
+    global hor_position
+    global hor_search_step
+    global vert_position
+    global vert_search_step
+    
     # Поиск по горизонтали
     hor_position = hor_position + hor_search_step
     if hor_search_step > 0 and hor_position > MAX_HOR_ANGLE:
@@ -84,6 +89,9 @@ def search_faces():
 
 # Отслеживание лиц
 def track_faces(faces):
+    global hor_position
+    global vert_position
+    
     left = FRAME_WIDTH
     right = 0
     top = 0
@@ -140,11 +148,11 @@ while True:
         if delay < SEARCH_DELAY:
             cv2.putText(frame, 
                 f'Лица не найдены {delay} секунд', 
-                (10, 40), font, 0.5, text_color, 1, cv2.LINE_AA)          
+                (10, 40), font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)          
         else:
             say_hello = True
             cv2.putText(frame, 'Ищу лица', 
-                (10, 40), font, 0.5, text_color, 1, cv2.LINE_AA)
+                (10, 40), font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
             search_faces()
     else: # Лица обнаружены
         faceview_time = datetime.now()
@@ -160,5 +168,5 @@ while True:
     cv2.imshow('Робот', frame)
     
     # Ожидание нажатия кнопки 'q' для выхода
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    if cv2.waitKey(20) & 0xFF == ord('q'):
         break
