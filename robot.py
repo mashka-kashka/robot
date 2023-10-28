@@ -4,7 +4,9 @@ from servo import *
 from picamera2 import Picamera2
 from gpiozero import CPUTemperature
 from datetime import datetime
-import mediapipe
+from mediapipe.python.solutions import drawing_utils as mp_drawing
+from mediapipe.python.solutions import face_detection as mp_faces
+from mediapipe.python.solutions import hands as mp_hands
 import cv2
 import os
 
@@ -29,18 +31,12 @@ VERT_DELTA = 10 * VERT_STEP / 180 * 3.141 * FRAME_HEIGHT
 pwm = Servo()
 cpu = CPUTemperature()
 font = cv2.FONT_HERSHEY_COMPLEX
-face_detector = cv2.CascadeClassifier("/home/pi/.local/lib/python3.9/site-packages/cv2/data/haarcascade_frontalface_default.xml")
 
 picam2 = Picamera2()
-picam2.configure(picam2.create_preview_configuration(main={"format": 'BGR888', "size": (FRAME_WIDTH, FRAME_HEIGHT)}))
+picam2.configure(picam2.create_preview_configuration(
+  main={"format": 'BGR888', "size": (FRAME_WIDTH, FRAME_HEIGHT)}))
 picam2.start()
 
-# Модуль распознавания рук
-drawingModule = mediapipe.solutions.drawing_utils
-handsModule = mediapipe.solutions.hands
-
-cap = cv2.VideoCapture(0)
-fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
 cv2.startWindowThread()
 
 hor_position = 70
@@ -54,8 +50,15 @@ vert_search_step = VERT_STEP
 view_time = datetime.now()
 say_hello = True
 
+hands = mp_hands.Hands(static_image_mode=False, 
+                        min_detection_confidence=0.7, 
+                        min_tracking_confidence=0.7, 
+                        max_num_hands=2)
+faces = mp_faces.FaceDetection(min_detection_confidence=0.7, 
+                                model_selection=0)
+
 # Отображение температуры процессора
-def print_cpu_temperature():
+def print_cpu_temperature(image):
     # Настраиваем цвет в зависимости от температуры процессора
     text_color =  (0, 200, 0)
     if (cpu.temperature > 60):
@@ -63,7 +66,7 @@ def print_cpu_temperature():
     if (cpu.temperature > 80):
         text_color = (0, 0, 200)
         
-    cv2.putText(frame, f'Температура процессора: {int(cpu.temperature)}', 
+    cv2.putText(image, f'Температура процессора: {int(cpu.temperature)}', 
         (10, 20), font, 0.5, text_color, 1, cv2.LINE_AA)
 
 # Поиск лиц
@@ -94,31 +97,52 @@ def search_faces():
     #print(f"hor {hor_position} vert {vert_position}")
     
 # Отслеживание лиц
-def track_faces(faces):
+def track_detections(image, detections):
     global hor_position
     global vert_position
     
-    left = FRAME_WIDTH
+    image_rows, image_cols, _ = image.shape
+    left = image_cols
     right = 0
     top = 0
-    bottom = FRAME_HEIGHT
-    for (x, y, w, h) in faces:
-        # Отображение рамок
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0))
-    
-        if x < left:
-            left = x
-        if x + w > right:
-            right = x + w
-        if y < bottom:
-            bottom = y
-        if y + h > top:
-            top = y + h
+    bottom = image_rows
+        
+    for detection in detections:
+        location = detection.location_data
+        if not location.HasField('relative_bounding_box'):
+            continue
+        relative_bounding_box = location.relative_bounding_box
+        lb = mp_drawing._normalized_to_pixel_coordinates(
+          relative_bounding_box.xmin, relative_bounding_box.ymin, 
+          image_cols, image_rows)
+        if not lb:
+            continue
+        rt = mp_drawing._normalized_to_pixel_coordinates(
+          relative_bounding_box.xmin + relative_bounding_box.width,
+          relative_bounding_box.ymin + relative_bounding_box.height, 
+          image_cols, image_rows)
+        if not rt:
+            continue
 
+        cv2.rectangle(image, lb, rt, (255, 255, 255), 2)
+              
+        l, b = lb
+        r, t = rt
+    
+        if l < left:
+            left = l
+        if r > right:
+            right = r
+        if b < bottom:
+            bottom = b
+        if t > top:
+            top = t
+            
     right = FRAME_WIDTH - right
     top = FRAME_HEIGHT - top
-
+    
     if right - left > HOR_DELTA:
+
         hor_position = hor_position - HOR_STEP
         if (hor_position < MIN_HOR_ANGLE):
             hor_position = MIN_HOR_ANGLE
@@ -140,49 +164,49 @@ def track_faces(faces):
             vert_position = MIN_VERT_ANGLE
         pwm.setServoPwm('1', vert_position)
 
-with handsModule.Hands(static_image_mode=False, min_detection_confidence=0.7, min_tracking_confidence=0.7, max_num_hands=1) as hands:
-    while True:
-        frame = picam2.capture_array()
-               
-        # Отображение температуры процессора
-        print_cpu_temperature()
-        
-        # Обнаружение рук в кадре
-        results = hands.process(frame)
-        if results.multi_hand_landmarks != None:
-            for handLandmarks in results.multi_hand_landmarks:
-                view_time = datetime.now()
-                drawingModule.draw_landmarks(frame, handLandmarks, handsModule.HAND_CONNECTIONS)
-
-        # Обнаружение лиц в кадре
-        faces = face_detector.detectMultiScale(frame, 1.1, 5)
-        if len(faces)==0: # Лица не обнаружены
-            time_diff = datetime.now() - view_time
-            delay = int(time_diff.total_seconds())
-            if delay < SEARCH_DELAY:
-                cv2.putText(frame, 
-                    f'Лица не найдены {delay} секунд', 
-                    (10, 40), font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)          
-            else:
-                say_hello = True
-                cv2.putText(frame, 'Ищу лица', 
-                    (10, 40), font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
-                search_faces()
-        else: # Лица обнаружены
+while True:
+    frame = picam2.capture_array()
+           
+    # Отображение температуры процессора
+    print_cpu_temperature(frame)
+    
+    # Обнаружение рук в кадре
+    results = hands.process(frame)
+    if results.multi_hand_landmarks:
+        for handLandmarks in results.multi_hand_landmarks:
             view_time = datetime.now()
-            
-            if say_hello:
-                os.system('aplay ./audio/привет.wav')
-                say_hello = False
-            
-            # Ценрирование камеры на лицах
-            track_faces(faces)
+            mp_drawing.draw_landmarks(frame, handLandmarks, 
+                                      mp_hands.HAND_CONNECTIONS)
 
-        # Ожидание нажатия кнопки 'Esc' для выхода
-        if cv2.waitKey(1) == 27:
-          break
+    # Обнаружение лиц в кадре            
+    results = faces.process(frame)
+    if results.detections:
+        view_time = datetime.now()
+        
+        if say_hello:
+            os.system('aplay ./audio/привет.wav')
+            say_hello = False
+        
+        # Ценрирование камеры на лицах
+        track_detections(frame, results.detections)
+    else:
+        time_diff = datetime.now() - view_time
+        delay = int(time_diff.total_seconds())
+        if delay < SEARCH_DELAY:
+            cv2.putText(frame, 
+                f'Лица не найдены {delay} секунд', 
+                (10, 40), font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)          
+        else:
+            say_hello = True
+            cv2.putText(frame, 'Ищу лица', 
+                (10, 40), font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+            search_faces()  
 
-        # Отображение кадра
-        cv2.imshow('robot', cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+    # Ожидание нажатия кнопки 'Esc' для выхода
+    if cv2.waitKey(1) == 27:
+      break
+
+    # Отображение кадра
+    cv2.imshow('robot', cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
 
 cv2.destroyAllWindows()
