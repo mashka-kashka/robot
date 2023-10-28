@@ -67,7 +67,7 @@ def print_cpu_temperature(image):
         text_color = (0, 0, 200)
         
     cv2.putText(image, f'Температура процессора: {int(cpu.temperature)}', 
-        (10, 20), font, 0.5, text_color, 1, cv2.LINE_AA)
+        (10, 30), font, 1, text_color, 1, cv2.LINE_AA)
 
 # Поиск лиц
 def search_faces(): 
@@ -194,12 +194,12 @@ while True:
         delay = int(time_diff.total_seconds())
         if delay < SEARCH_DELAY:
             cv2.putText(frame, 
-                f'Лица не найдены {delay} секунд', 
-                (10, 40), font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)          
+                f'Поиск через {SEARCH_DELAY - delay} секунд', 
+                (10, 60), font, 1, (255, 255, 255), 1, cv2.LINE_AA)          
         else:
             say_hello = True
             cv2.putText(frame, 'Ищу лица', 
-                (10, 40), font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+                (10, 60), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
             search_faces()  
 
     # Ожидание нажатия кнопки 'Esc' для выхода
