@@ -4,9 +4,9 @@ from servo import *
 from picamera2 import Picamera2
 from gpiozero import CPUTemperature
 from datetime import datetime
+import mediapipe as mp
 import cv2
 import os
-
 
 # Параметры кадра
 FRAME_WIDTH = 640
@@ -29,7 +29,7 @@ VERT_DELTA = 10 * VERT_STEP / 180 * 3.141 * FRAME_HEIGHT
 pwm = Servo()
 cpu = CPUTemperature()
 font = cv2.FONT_HERSHEY_COMPLEX
-face_detector = cv2.CascadeClassifier("/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml")
+face_detector = cv2.CascadeClassifier("/home/pi/.local/lib/python3.9/site-packages/cv2/data/haarcascade_frontalface_default.xml")
 
 picam2 = Picamera2()
 picam2.configure(picam2.create_preview_configuration(main={"format": 'XRGB8888', "size": (FRAME_WIDTH, FRAME_HEIGHT)}))
@@ -42,7 +42,7 @@ vert_position = 90
 pwm.setServoPwm('0', hor_position)
 pwm.setServoPwm('1', vert_position)
 
-SEARCH_DELAY = 10
+SEARCH_DELAY = 5
 hor_search_step = HOR_STEP
 vert_search_step = VERT_STEP
 faceview_time = datetime.now()
@@ -75,18 +75,18 @@ def search_faces():
     elif hor_search_step < 0 and hor_position < MIN_HOR_ANGLE:
         hor_position = MIN_HOR_ANGLE
         hor_search_step = hor_search_step * -1
+        # Поиск по вертикали
+        vert_position = vert_position + vert_search_step
+        if vert_search_step > 0 and vert_position > MAX_VERT_ANGLE:
+            vert_position = MAX_VERT_ANGLE
+            vert_search_step = vert_search_step * -1
+        elif vert_search_step < 0 and vert_position < MIN_VERT_ANGLE:
+            vert_position = MIN_VERT_ANGLE
+            vert_search_step = vert_search_step * -1
+        pwm.setServoPwm('1', vert_position)
     pwm.setServoPwm('0', hor_position)
+    #print(f"hor {hor_position} vert {vert_position}")
     
-    # Поиск по вертикали
-    vert_position = vert_position + vert_search_step
-    if vert_search_step > 0 and vert_position > MAX_VERT_ANGLE:
-        vert_position = MAX_VERT_ANGLE
-        vert_search_step = vert_search_step * -1
-    elif vert_search_step < 0 and vert_position < MIN_VERT_ANGLE:
-        vert_position = MIN_VERT_ANGLE
-        vert_search_step = vert_search_step * -1
-    pwm.setServoPwm('1', vert_position)
-
 # Отслеживание лиц
 def track_faces(faces):
     global hor_position
@@ -136,6 +136,7 @@ def track_faces(faces):
 
 while True:
     frame = picam2.capture_array()
+   
     # Отображение температуры процессора
     print_cpu_temperature()
 
@@ -164,9 +165,11 @@ while True:
         # Ценрирование камеры на лицах
         track_faces(faces)
 
+    # Ожидание нажатия кнопки 'Esc' для выхода
+    if cv2.waitKey(1) == 27:
+      break
+
     # Отображение кадра
-    cv2.imshow('Робот', frame)
-    
-    # Ожидание нажатия кнопки 'q' для выхода
-    if cv2.waitKey(20) & 0xFF == ord('q'):
-        break
+    cv2.imshow('robot', frame)
+
+cv2.destroyAllWindows()
