@@ -4,7 +4,7 @@ from servo import *
 from picamera2 import Picamera2
 from gpiozero import CPUTemperature
 from datetime import datetime
-import mediapipe as mp
+import mediapipe
 import cv2
 import os
 
@@ -32,9 +32,15 @@ font = cv2.FONT_HERSHEY_COMPLEX
 face_detector = cv2.CascadeClassifier("/home/pi/.local/lib/python3.9/site-packages/cv2/data/haarcascade_frontalface_default.xml")
 
 picam2 = Picamera2()
-picam2.configure(picam2.create_preview_configuration(main={"format": 'XRGB8888', "size": (FRAME_WIDTH, FRAME_HEIGHT)}))
+picam2.configure(picam2.create_preview_configuration(main={"format": 'BGR888', "size": (FRAME_WIDTH, FRAME_HEIGHT)}))
 picam2.start()
 
+# Модуль распознавания рук
+drawingModule = mediapipe.solutions.drawing_utils
+handsModule = mediapipe.solutions.hands
+
+cap = cv2.VideoCapture(0)
+fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
 cv2.startWindowThread()
 
 hor_position = 70
@@ -45,7 +51,7 @@ pwm.setServoPwm('1', vert_position)
 SEARCH_DELAY = 5
 hor_search_step = HOR_STEP
 vert_search_step = VERT_STEP
-faceview_time = datetime.now()
+view_time = datetime.now()
 say_hello = True
 
 # Отображение температуры процессора
@@ -134,42 +140,49 @@ def track_faces(faces):
             vert_position = MIN_VERT_ANGLE
         pwm.setServoPwm('1', vert_position)
 
-while True:
-    frame = picam2.capture_array()
-   
-    # Отображение температуры процессора
-    print_cpu_temperature()
-
-    # Обнаружение лиц в кадре
-    grey = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    faces = face_detector.detectMultiScale(grey, 1.1, 5)
-    if len(faces)==0: # Лица не обнаружены
-        time_diff = datetime.now() - faceview_time
-        delay = int(time_diff.total_seconds())
-        if delay < SEARCH_DELAY:
-            cv2.putText(frame, 
-                f'Лица не найдены {delay} секунд', 
-                (10, 40), font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)          
-        else:
-            say_hello = True
-            cv2.putText(frame, 'Ищу лица', 
-                (10, 40), font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
-            search_faces()
-    else: # Лица обнаружены
-        faceview_time = datetime.now()
+with handsModule.Hands(static_image_mode=False, min_detection_confidence=0.7, min_tracking_confidence=0.7, max_num_hands=1) as hands:
+    while True:
+        frame = picam2.capture_array()
+               
+        # Отображение температуры процессора
+        print_cpu_temperature()
         
-        if say_hello:
-            os.system('aplay ./audio/привет.wav')
-            say_hello = False
-        
-        # Ценрирование камеры на лицах
-        track_faces(faces)
+        # Обнаружение рук в кадре
+        results = hands.process(frame)
+        if results.multi_hand_landmarks != None:
+            for handLandmarks in results.multi_hand_landmarks:
+                view_time = datetime.now()
+                drawingModule.draw_landmarks(frame, handLandmarks, handsModule.HAND_CONNECTIONS)
 
-    # Ожидание нажатия кнопки 'Esc' для выхода
-    if cv2.waitKey(1) == 27:
-      break
+        # Обнаружение лиц в кадре
+        faces = face_detector.detectMultiScale(frame, 1.1, 5)
+        if len(faces)==0: # Лица не обнаружены
+            time_diff = datetime.now() - view_time
+            delay = int(time_diff.total_seconds())
+            if delay < SEARCH_DELAY:
+                cv2.putText(frame, 
+                    f'Лица не найдены {delay} секунд', 
+                    (10, 40), font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)          
+            else:
+                say_hello = True
+                cv2.putText(frame, 'Ищу лица', 
+                    (10, 40), font, 0.5, (0, 0, 0), 1, cv2.LINE_AA)
+                search_faces()
+        else: # Лица обнаружены
+            view_time = datetime.now()
+            
+            if say_hello:
+                os.system('aplay ./audio/привет.wav')
+                say_hello = False
+            
+            # Ценрирование камеры на лицах
+            track_faces(faces)
 
-    # Отображение кадра
-    cv2.imshow('robot', frame)
+        # Ожидание нажатия кнопки 'Esc' для выхода
+        if cv2.waitKey(1) == 27:
+          break
+
+        # Отображение кадра
+        cv2.imshow('robot', cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
 
 cv2.destroyAllWindows()
