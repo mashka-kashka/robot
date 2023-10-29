@@ -1,14 +1,23 @@
 #!/usr/bin/python3
 
-from servo import *
-from picamera2 import Picamera2
-from gpiozero import CPUTemperature
-from datetime import datetime
-from mediapipe.python.solutions import drawing_utils as mp_drawing
-from mediapipe.python.solutions import face_detection as mp_faces
-from mediapipe.python.solutions import hands as mp_hands
-import cv2
 import os
+
+# Определяем тип платформы
+raspberry = (os.uname()[1] == 'raspberrypi')
+
+if raspberry: # Подключаем только на Raspberry Pi
+    from servo import *
+    from picamera2 import Picamera2
+    from gpiozero import CPUTemperature
+    
+from datetime import datetime
+from mediapipe.tasks import python as mp_python
+from mediapipe.tasks.python import vision as mp_vision
+from mediapipe.python.solutions import drawing_utils as mp_drawing
+from mediapipe.python.solutions import face_detection as mp_face_detector
+from mediapipe.python.solutions import hands as mp_hand_detector
+import mediapipe as mp
+import cv2
 
 # Параметры кадра
 FRAME_WIDTH = 640
@@ -50,12 +59,28 @@ vert_search_step = VERT_STEP
 view_time = datetime.now()
 say_hello = True
 
-hands = mp_hands.Hands(static_image_mode=False, 
-                        min_detection_confidence=0.7, 
-                        min_tracking_confidence=0.7, 
-                        max_num_hands=2)
-faces = mp_faces.FaceDetection(min_detection_confidence=0.7, 
-                                model_selection=0)
+# Модуль обнаружения рук
+tip=[8,12,16,20]
+hand_detector = mp_hand_detector.Hands(
+    static_image_mode=False, 
+    min_detection_confidence=0.7, 
+    min_tracking_confidence=0.7, 
+    max_num_hands=2)
+                        
+# Модуль обнаружения лиц
+face_detector = mp_face_detector.FaceDetection(
+    min_detection_confidence=0.7, 
+    model_selection=0)
+                                
+# Модуль обнаружения объектов
+base_options = mp_python.BaseOptions(
+    model_asset_path='./models/efficientdet.tflite')
+options = mp_vision.ObjectDetectorOptions(
+    base_options=base_options,
+    running_mode=mp_vision.RunningMode.IMAGE,
+    max_results=3, 
+    score_threshold=0.3)
+object_detector = mp_vision.ObjectDetector.create_from_options(options)
 
 # Отображение температуры процессора
 def print_cpu_temperature(image):
@@ -70,7 +95,7 @@ def print_cpu_temperature(image):
         (10, 30), font, 1, text_color, 1, cv2.LINE_AA)
 
 # Поиск лиц
-def search_faces(): 
+def search_face_detector(): 
     global hor_position
     global hor_search_step
     global vert_position
@@ -171,15 +196,33 @@ while True:
     print_cpu_temperature(frame)
     
     # Обнаружение рук в кадре
-    results = hands.process(frame)
+    results = hand_detector.process(frame)
     if results.multi_hand_landmarks:
         for handLandmarks in results.multi_hand_landmarks:
             view_time = datetime.now()
             mp_drawing.draw_landmarks(frame, handLandmarks, 
-                                      mp_hands.HAND_CONNECTIONS)
+                                      mp_hand_detector.HAND_CONNECTIONS)
+            segments=[]
+            for id, pt in enumerate(handLandmarks.landmark):
+                 x = int(pt.x * FRAME_WIDTH)
+                 y = int(pt.y * FRAME_HEIGHT)
+                 segments.append([id, x, y])
+            
+            fingers_up = 0
+            if (len(segments) != 0):
+                if segments[0][1:] < segments[4][1:]: 
+                    fingers_up = 1
+                    
+                for id in range(0,4):
+                    if segments[tip[id]][2:] < segments[tip[id]-2][2:]:
+                        fingers_up += 1
+                    
+            cv2.putText(frame, 
+                f'Поднято пальцев {fingers_up}', 
+                (10, 60), font, 1, (255, 255, 255), 1, cv2.LINE_AA) 
 
     # Обнаружение лиц в кадре            
-    results = faces.process(frame)
+    results = face_detector.process(frame)
     if results.detections:
         view_time = datetime.now()
         
@@ -195,12 +238,12 @@ while True:
         if delay < SEARCH_DELAY:
             cv2.putText(frame, 
                 f'Поиск через {SEARCH_DELAY - delay} секунд', 
-                (10, 60), font, 1, (255, 255, 255), 1, cv2.LINE_AA)          
+                (10, 90), font, 1, (255, 255, 255), 1, cv2.LINE_AA)          
         else:
             say_hello = True
             cv2.putText(frame, 'Ищу лица', 
-                (10, 60), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
-            search_faces()  
+                (10, 90), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
+            search_face_detector()  
 
     # Ожидание нажатия кнопки 'Esc' для выхода
     if cv2.waitKey(1) == 27:
