@@ -18,6 +18,7 @@ from mediapipe.python.solutions import face_detection as mp_face_detector
 from mediapipe.python.solutions import hands as mp_hand_detector
 import mediapipe as mp
 import cv2
+import json
 
 # Параметры кадра
 FRAME_WIDTH = 640
@@ -63,6 +64,11 @@ palm_time = 0
 fist_time = 0
 detect_object_mode = False
 say_hello = True
+
+# Загружаем словарь
+dictionary = {}
+with open('dictionary.json') as f: 
+    dictionary = json.loads(f.read())
 
 # Модуль обнаружения рук
 tip=[8,12,16,20]
@@ -261,6 +267,9 @@ while True:
                 # Отображение названия
                 category = detection.categories[0]
                 category_name = category.category_name
+                translation = dictionary.get(category_name)
+                if translation != None:
+                    category_name = translation
                 probability = round(category.score, 2)
                 result_text = category_name + ' (' + str(probability) + ')'
                 text_location = (MARGIN + bbox.origin_x,
