@@ -22,6 +22,8 @@ import cv2
 # Параметры кадра
 FRAME_WIDTH = 640
 FRAME_HEIGHT = 480
+MARGIN = 10
+ROW_SIZE = 30
 
 # Ограничения горизонтального перемещения
 INIT_HOR_POSITION = 0
@@ -57,6 +59,9 @@ SEARCH_DELAY = 5
 hor_search_step = HOR_STEP
 vert_search_step = VERT_STEP
 view_time = datetime.now()
+palm_time = 0
+fist_time = 0
+detect_object_mode = False
 say_hello = True
 
 # Модуль обнаружения рук
@@ -200,8 +205,7 @@ while True:
     if results.multi_hand_landmarks:
         for handLandmarks in results.multi_hand_landmarks:
             view_time = datetime.now()
-            mp_drawing.draw_landmarks(frame, handLandmarks, 
-                                      mp_hand_detector.HAND_CONNECTIONS)
+            
             segments=[]
             for id, pt in enumerate(handLandmarks.landmark):
                  x = int(pt.x * FRAME_WIDTH)
@@ -216,34 +220,77 @@ while True:
                 for id in range(0,4):
                     if segments[tip[id]][2:] < segments[tip[id]-2][2:]:
                         fingers_up += 1
-                    
-            cv2.putText(frame, 
-                f'Поднято пальцев {fingers_up}', 
-                (10, 60), font, 1, (255, 255, 255), 1, cv2.LINE_AA) 
+            
+            # Переключение режима распознавания объектов
+            if fingers_up == 5:
+                palm_time = datetime.now()
+                if fist_time != 0:
+                    time_diff = palm_time - fist_time
+                    if time_diff.total_seconds() < 2:
+                        detect_object_mode = False                
+            elif fingers_up < 2:
+                fist_time = datetime.now()
+                if palm_time != 0:
+                    time_diff = fist_time - palm_time
+                    if time_diff.total_seconds() < 2:
+                        detect_object_mode = True
 
-    # Обнаружение лиц в кадре            
-    results = face_detector.process(frame)
-    if results.detections:
-        view_time = datetime.now()
-        
-        if say_hello:
-            os.system('aplay ./audio/привет.wav')
-            say_hello = False
-        
-        # Ценрирование камеры на лицах
-        track_detections(frame, results.detections)
+            if not detect_object_mode:
+                cv2.putText(frame, 
+                    f'Поднято пальцев {fingers_up}', 
+                    (10, 60), font, 1, (255, 255, 255), 1, cv2.LINE_AA) 
+                
+                # Отображение пальцев
+                mp_drawing.draw_landmarks(frame, handLandmarks, 
+                            mp_hand_detector.HAND_CONNECTIONS)
+    
+    if detect_object_mode:
+        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
+        detection_result = object_detector.detect(mp_image)
+        if detection_result:
+            # print(detection_result)
+            for detection in detection_result.detections:
+                # Отображение рамки
+                bbox = detection.bounding_box
+                start_point = bbox.origin_x, bbox.origin_y
+                end_point = bbox.origin_x + bbox.width, \
+                            bbox.origin_y + bbox.height
+                cv2.rectangle(frame, start_point, end_point, 
+                              (0, 165, 255), 2)
+
+                # Отображение названия
+                category = detection.categories[0]
+                category_name = category.category_name
+                probability = round(category.score, 2)
+                result_text = category_name + ' (' + str(probability) + ')'
+                text_location = (MARGIN + bbox.origin_x,
+                                 MARGIN + ROW_SIZE + bbox.origin_y)
+                cv2.putText(frame, result_text, text_location, 
+                            font, 1, (255, 255, 255), 1, cv2.LINE_AA)
     else:
-        time_diff = datetime.now() - view_time
-        delay = int(time_diff.total_seconds())
-        if delay < SEARCH_DELAY:
-            cv2.putText(frame, 
-                f'Поиск через {SEARCH_DELAY - delay} секунд', 
-                (10, 90), font, 1, (255, 255, 255), 1, cv2.LINE_AA)          
+        # Обнаружение лиц в кадре            
+        results = face_detector.process(frame)
+        if results.detections:
+            view_time = datetime.now()
+            
+            if say_hello:
+                os.system('aplay ./audio/привет.wav')
+                say_hello = False
+            
+            # Ценрирование камеры на лицах
+            track_detections(frame, results.detections)
         else:
-            say_hello = True
-            cv2.putText(frame, 'Ищу лица', 
-                (10, 90), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
-            search_face_detector()  
+            time_diff = datetime.now() - view_time
+            delay = int(time_diff.total_seconds())
+            if delay < SEARCH_DELAY:
+                cv2.putText(frame, 
+                    f'Поиск через {SEARCH_DELAY - delay} секунд', 
+                    (10, 90), font, 1, (255, 255, 255), 1, cv2.LINE_AA)          
+            else:
+                say_hello = True
+                cv2.putText(frame, 'Ищу лица', 
+                    (10, 90), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
+                search_face_detector()  
 
     # Ожидание нажатия кнопки 'Esc' для выхода
     if cv2.waitKey(1) == 27:
