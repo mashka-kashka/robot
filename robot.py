@@ -21,16 +21,16 @@ import cv2
 import json
 
 # Параметры кадра
-FRAME_WIDTH = 640
-FRAME_HEIGHT = 480
-MARGIN = 10
-ROW_SIZE = 30
+FRAME_WIDTH = 1024  
+FRAME_HEIGHT = 768
+MARGIN = 10 # отступ от края
+ROW_SIZE = 30 # высота строки текста
 
 # Ограничения горизонтального перемещения
-INIT_HOR_POSITION = 0
-MIN_HOR_ANGLE = 10
-MAX_HOR_ANGLE = 130
-HOR_STEP = 2
+INIT_HOR_POSITION = 0 # начальный горизонтальный поворот камеры
+MIN_HOR_ANGLE = 10 # минимальный угол поворота камеры по горизонтали
+MAX_HOR_ANGLE = 130 # максимальный угол по горизонтали
+HOR_STEP = 2 # горизонтальный 
 HOR_DELTA = 10 * HOR_STEP / 180 * 3.141 * FRAME_WIDTH
 
 # Ограничения вертикального перемещения
