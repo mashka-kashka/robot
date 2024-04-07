@@ -10,7 +10,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 
 
 class Ui_MainWindow(object):
-    def setupUi(self, MainWindow: object) -> object:
+    def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(989, 600)
         self.centralwidget = QtWidgets.QWidget(parent=MainWindow)
@@ -36,9 +36,18 @@ class Ui_MainWindow(object):
         self.video.setText("")
         self.video.setObjectName("video")
         self.tabWidget = QtWidgets.QTabWidget(parent=self.splitter)
+        self.tabWidget.setIconSize(QtCore.QSize(32, 32))
         self.tabWidget.setObjectName("tabWidget")
         self.tabConfig = QtWidgets.QWidget()
         self.tabConfig.setObjectName("tabConfig")
+        self.formLayout_2 = QtWidgets.QFormLayout(self.tabConfig)
+        self.formLayout_2.setObjectName("formLayout_2")
+        self.label = QtWidgets.QLabel(parent=self.tabConfig)
+        self.label.setObjectName("label")
+        self.formLayout_2.setWidget(0, QtWidgets.QFormLayout.ItemRole.LabelRole, self.label)
+        self.ip_address = QtWidgets.QLineEdit(parent=self.tabConfig)
+        self.ip_address.setObjectName("ip_address")
+        self.formLayout_2.setWidget(0, QtWidgets.QFormLayout.ItemRole.FieldRole, self.ip_address)
         self.tabWidget.addTab(self.tabConfig, "")
         self.tabMove = QtWidgets.QWidget()
         self.tabMove.setObjectName("tabMove")
@@ -60,14 +69,20 @@ class Ui_MainWindow(object):
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
         self.toolBar = QtWidgets.QToolBar(parent=MainWindow)
+        self.toolBar.setIconSize(QtCore.QSize(32, 32))
         self.toolBar.setObjectName("toolBar")
         MainWindow.addToolBar(QtCore.Qt.ToolBarArea.TopToolBarArea, self.toolBar)
         self.actionExit = QtGui.QAction(parent=MainWindow)
         icon = QtGui.QIcon.fromTheme("system-shutdown")
         self.actionExit.setIcon(icon)
         self.actionExit.setObjectName("actionExit")
+        self.actionConnect = QtGui.QAction(parent=MainWindow)
+        self.actionConnect.setObjectName("actionConnect")
+        self.menu.addAction(self.actionConnect)
         self.menu.addAction(self.actionExit)
         self.menubar.addAction(self.menu.menuAction())
+        self.toolBar.addAction(self.actionConnect)
+        self.toolBar.addAction(self.actionExit)
 
         self.retranslateUi(MainWindow)
         self.tabWidget.setCurrentIndex(0)
@@ -77,11 +92,14 @@ class Ui_MainWindow(object):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "Робот 2.0"))
         self.video.setToolTip(_translate("MainWindow", "Видео"))
+        self.label.setText(_translate("MainWindow", "Адрес"))
+        self.ip_address.setInputMask(_translate("MainWindow", "000.000.000.000"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabConfig), _translate("MainWindow", "Настройки"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabMove), _translate("MainWindow", "Движение"))
         self.menu.setTitle(_translate("MainWindow", "Управление"))
         self.toolBar.setWindowTitle(_translate("MainWindow", "toolBar"))
-        self.actionExit.setText(_translate("MainWindow", "Отключиться"))
+        self.actionExit.setText(_translate("MainWindow", "Выход"))
+        self.actionConnect.setText(_translate("MainWindow", "Подключиться"))
 
 
 if __name__ == "__main__":
