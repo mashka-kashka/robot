@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import io
+import fcntl
 import struct
 import socket
 import threading
@@ -8,12 +9,11 @@ from picamera2 import Picamera2, Preview
 from picamera2.encoders import JpegEncoder
 from picamera2.outputs import FileOutput
 from picamera2.encoders import Quality
-from threading import Condition
 
 class StreamingOutput(io.BufferedIOBase):
     def __init__(self):
         self.frame = None
-        self.condition = Condition()
+        self.condition = threading.Condition()
 
     def write(self, buf):
         with self.condition:
@@ -33,12 +33,12 @@ class RoboServer:
         self.data_connection = None
         self.data_thread = None
 
-        self.start()
-
     def get_ip_address(self):
-        import socket
-        hostname = socket.gethostname()
-        return socket.gethostbyname(hostname)
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        return socket.inet_ntoa(fcntl.ioctl(s.fileno(),
+                                0x8915,
+                                struct.pack('256s',b'wlan0'[:15])
+                                )[20:24])
 
     def start(self):
         self.server_address = self.get_ip_address()
@@ -92,8 +92,9 @@ class RoboServer:
             while True:
                 try:
                     data = self.data_connection.recv(1024).decode('utf-8')
-                except:
-                    self.reset()
+                except Exception as e:
+                    print(e)
+                    #self.reset()
                     break
                 print(f"Получены данные: {data}")
                 break
