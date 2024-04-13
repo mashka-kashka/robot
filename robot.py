@@ -81,7 +81,7 @@ hand_detector = mp_hand_detector.Hands(
 # Модуль обнаружения лиц
 face_detector = mp_face_detector.FaceDetection(
     min_detection_confidence=0.7, 
-    model_selection=0)
+    model_selection=1)
                                 
 # Модуль обнаружения объектов
 base_options = mp_python.BaseOptions(
