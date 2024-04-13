@@ -30,33 +30,37 @@ ROW_SIZE = 30 # высота строки текста
 INIT_HOR_POSITION = 0 # начальный горизонтальный поворот камеры
 MIN_HOR_ANGLE = 10 # минимальный угол поворота камеры по горизонтали
 MAX_HOR_ANGLE = 130 # максимальный угол по горизонтали
-HOR_STEP = 2 # горизонтальный 
+HOR_STEP = 2 # горизонтальный шаг поворота камеры в градусах
+# горизонтальный шаг в пикселях
 HOR_DELTA = 10 * HOR_STEP / 180 * 3.141 * FRAME_WIDTH
 
 # Ограничения вертикального перемещения
-INIT_VERT_POSITION = 30
-MIN_VERT_ANGLE = 80
-MAX_VERT_ANGLE = 150
-VERT_STEP = 2 
+INIT_VERT_POSITION = 30 # начальный вертикальный поворота камеры
+MIN_VERT_ANGLE = 80 # минимальный угол поворота камеры по вертикали
+MAX_VERT_ANGLE = 150 # максимальный угол поворота камеры по вертикали
+VERT_STEP = 2 # вертикальный шаг поворота камеры в градусах 
+# вертикальный шаг в пикселях
 VERT_DELTA = 10 * VERT_STEP / 180 * 3.141 * FRAME_HEIGHT
 
-pwm = Servo()
+pwm = Servo() 
 cpu = CPUTemperature()
 font = cv2.FONT_HERSHEY_COMPLEX
 
 picam2 = Picamera2()
 picam2.configure(picam2.create_preview_configuration(
   main={"format": 'BGR888', "size": (FRAME_WIDTH, FRAME_HEIGHT)}))
-picam2.start()
+picam2.start() # запускаем камеру
 
-cv2.startWindowThread()
+cv2.startWindowThread() # запускаем модуль компьютерного зрения
 
+# поворачиваем камеру в начальное положение
 hor_position = 70
 vert_position = 90
 pwm.setServoPwm('0', hor_position)
 pwm.setServoPwm('1', vert_position)
 
-SEARCH_DELAY = 5
+SEARCH_DELAY = 5 # задержка перед началом поиска лиц
+# шаги поиска лиц
 hor_search_step = HOR_STEP
 vert_search_step = VERT_STEP
 view_time = datetime.now()
@@ -85,7 +89,8 @@ face_detector = mp_face_detector.FaceDetection(
                                 
 # Модуль обнаружения объектов
 base_options = mp_python.BaseOptions(
-    model_asset_path='./models/efficientdet.tflite')
+	# efficientdet.tflite
+    model_asset_path='./models/efficientdet_lite0.tflite')
 options = mp_vision.ObjectDetectorOptions(
     base_options=base_options,
     running_mode=mp_vision.RunningMode.IMAGE,
@@ -201,6 +206,7 @@ def track_detections(image, detections):
         pwm.setServoPwm('1', vert_position)
 
 while True:
+	# Получаем следующий кадр от камеры
     frame = picam2.capture_array()
            
     # Отображение температуры процессора
@@ -250,7 +256,7 @@ while True:
                 mp_drawing.draw_landmarks(frame, handLandmarks, 
                             mp_hand_detector.HAND_CONNECTIONS)
     
-    if detect_object_mode:
+    if detect_object_mode # Если робот в режиме обнаружения объектов
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
         detection_result = object_detector.detect(mp_image)
         if detection_result:
@@ -276,19 +282,19 @@ while True:
                                  MARGIN + ROW_SIZE + bbox.origin_y)
                 cv2.putText(frame, result_text, text_location, 
                             font, 1, (255, 255, 255), 1, cv2.LINE_AA)
-    else:
+    else: # Не в режиме обнаружения объектов
         # Обнаружение лиц в кадре            
         results = face_detector.process(frame)
-        if results.detections:
+        if results.detections: # В кадре есть лица
             view_time = datetime.now()
             
             if say_hello:
                 os.system('aplay ./audio/привет.wav')
                 say_hello = False
             
-            # Ценрирование камеры на лицах
+            # Центрирование камеры на лицах
             track_detections(frame, results.detections)
-        else:
+        else: # В кадре нет лиц
             time_diff = datetime.now() - view_time
             delay = int(time_diff.total_seconds())
             if delay < SEARCH_DELAY:
@@ -308,4 +314,4 @@ while True:
     # Отображение кадра
     cv2.imshow('robot', cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
 
-cv2.destroyAllWindows()
+cv2.destroyAllWindows() # Закрываем окно с видео
