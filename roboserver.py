@@ -1,8 +1,6 @@
 #!/usr/bin/python3
 
 import time
-import keyboard
-#from getch import getch
 
 class RoboServer:
     def __init__(self):
@@ -11,9 +9,9 @@ class RoboServer:
     def start(self):
         print("Сервер запущен")
         while True:
-            if keyboard.is_pressed("esc"):
-                self.stop()
-
+            print('.')
+            time.sleep(1)
+            
     def stop(self):
         print("Сервер остановлен")
         exit()
