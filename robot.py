@@ -49,7 +49,7 @@ cv2.startWindowThread() # запускаем модуль компьютерно
 
 # поворачиваем камеру в начальное положение
 hor_position = 70
-vert_position = 90
+vert_position = 70
 pwm.setServoPwm('0', hor_position)
 pwm.setServoPwm('1', vert_position)
 

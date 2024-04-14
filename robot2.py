@@ -50,13 +50,14 @@ cv2.startWindowThread() # запускаем модуль компьютерно
 
 # поворачиваем камеру в начальное положение
 hor_position = 70
-vert_position = 90
+vert_position = 70
 servo = Servo()
 servo.setServoPwm('0', hor_position)
 servo.setServoPwm('1', vert_position)
 
 # Подключаем моторы
-motor = Motor()
+#motor = Motor()
+#SPEED = 1000
 
 SEARCH_DELAY = 5 # задержка перед началом поиска лиц
 # шаги поиска лиц
@@ -337,21 +338,23 @@ while True:
     elif mode == RoboMode.move_forward:         
         cv2.putText(frame, 'Вперед', 
             (10, 100), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
-        motor.setMotorModel(100, 100, 100, 100)
+        #motor.setMotorModel(SPEED, SPEED, SPEED, SPEED)
     elif mode == RoboMode.move_back:         
         cv2.putText(frame, 'Назад',
             (10, 100), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
-        motor.setMotorModel(-100, -100, -100, -100)
+        #motor.setMotorModel(-SPEED, -SPEED, -SPEED, -SPEED)
     elif mode == RoboMode.move_right:         
         cv2.putText(frame, 'Вправо',
             (10, 100), font, 1, (255, 255, 255), 1, cv2.LINE_AA) 
+        #motor.setMotorModel(-SPEED, -SPEED, SPEED, SPEED)
     elif mode == RoboMode.move_left:         
         cv2.putText(frame, 'Влево',
             (10, 100), font, 1, (255, 255, 255), 1, cv2.LINE_AA) 
+        #motor.setMotorModel(SPEED, SPEED, -SPEED, -SPEED)
     elif mode == RoboMode.stop:         
         cv2.putText(frame, 'Стоп',
             (10, 100), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
-        motor.setMotorModel(0, 0, 0, 0)
+        #motor.setMotorModel(0, 0, 0, 0)
             
     # Ожидание нажатия кнопки 'Esc' для выхода
     if cv2.waitKey(1) == 27:
@@ -360,4 +363,6 @@ while True:
     # Отображение кадра
     cv2.imshow('robot', cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
 
+motor.setMotorModel(0, 0, 0, 0)
 cv2.destroyAllWindows() # Закрываем окно с видео
+

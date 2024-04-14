@@ -7,8 +7,8 @@ import time
 class Motor:
     def __init__(self):
         self.pwm = PCA9685(0x40, debug=True)
-        self.pwm.setPWMFreq(50)
-        self.time_proportion = 2.5  # Depend on your own car,If you want to get the best out of the rotation mode,
+        self.pwm.setPWMFreq(200)
+        self.time_proportion = 1  # Depend on your own car,If you want to get the best out of the rotation mode,
         # change the value by experimenting.
         self.adc = Adc()
 
