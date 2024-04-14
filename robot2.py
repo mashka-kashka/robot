@@ -2,6 +2,7 @@
 
 import os
 from servo import *
+from motor import *
 from picamera2 import Picamera2
 from gpiozero import CPUTemperature
 from datetime import datetime
@@ -37,7 +38,6 @@ VERT_STEP = 2 # вертикальный шаг поворота камеры в
 # вертикальный шаг в пикселях
 VERT_DELTA = 10 * VERT_STEP / 180 * 3.141 * FRAME_HEIGHT
 
-pwm = Servo() 
 cpu = CPUTemperature()
 font = cv2.FONT_HERSHEY_COMPLEX
 
@@ -51,8 +51,12 @@ cv2.startWindowThread() # запускаем модуль компьютерно
 # поворачиваем камеру в начальное положение
 hor_position = 70
 vert_position = 90
-pwm.setServoPwm('0', hor_position)
-pwm.setServoPwm('1', vert_position)
+servo = Servo()
+servo.setServoPwm('0', hor_position)
+servo.setServoPwm('1', vert_position)
+
+# Подключаем моторы
+motor = Motor()
 
 SEARCH_DELAY = 5 # задержка перед началом поиска лиц
 # шаги поиска лиц
@@ -65,13 +69,12 @@ say_hello = True
 
 # Режимы работы робота
 class RoboMode(enum.Enum):
-    none = 0,
     detect_faces = 1,       # Поиск лиц
     detect_objects = 2,     # Распонавание обектов
     move_forward = 3,       # Вперед    
-    move_back = 4,          #
-    move_left = 5,          #
-    move_right = 6,         #
+    move_back = 4,          # Назад
+    move_left = 5,          # Влево
+    move_right = 6,         # Вправо
     stop = 7                # Стоп
     
 mode = RoboMode.detect_faces    
@@ -140,8 +143,8 @@ def search_face_detector():
         elif vert_search_step < 0 and vert_position < MIN_VERT_ANGLE:
             vert_position = MIN_VERT_ANGLE
             vert_search_step = vert_search_step * -1
-        pwm.setServoPwm('1', vert_position)
-    pwm.setServoPwm('0', hor_position)
+        servo.setServoPwm('1', vert_position)
+    servo.setServoPwm('0', hor_position)
     #print(f"hor {hor_position} vert {vert_position}")
     
 # Отслеживание лиц
@@ -194,23 +197,23 @@ def track_detections(image, detections):
         hor_position = hor_position - HOR_STEP
         if (hor_position < MIN_HOR_ANGLE):
             hor_position = MIN_HOR_ANGLE
-        pwm.setServoPwm('0', hor_position)            
+        servo.setServoPwm('0', hor_position)
     elif left - right > HOR_DELTA:
         hor_position = hor_position + HOR_STEP
         if (hor_position > MAX_HOR_ANGLE):
             hor_position = MAX_HOR_ANGLE
-        pwm.setServoPwm('0', hor_position)
+        servo.setServoPwm('0', hor_position)
 
     if top - bottom > VERT_DELTA:
         vert_position = vert_position + VERT_STEP
         if (vert_position > MAX_VERT_ANGLE):
             vert_position = MAX_VERT_ANGLE
-        pwm.setServoPwm('1', vert_position)
+        servo.setServoPwm('1', vert_position)
     elif bottom - top > VERT_DELTA:
         vert_position = vert_position - VERT_STEP
         if (vert_position < MIN_VERT_ANGLE):
             vert_position = MIN_VERT_ANGLE
-        pwm.setServoPwm('1', vert_position)
+        servo.setServoPwm('1', vert_position)
 
 while True:
 	# Получаем следующий кадр от камеры
@@ -233,9 +236,9 @@ while True:
             
             x0 = segments[0][1]
             y0 = segments[0][2]
-            x4 = segments[4][1]
+            x4 = segments[4][1] # Большой палец
             y4 = segments[4][2]
-            x8 = segments[8][1]
+            x8 = segments[8][1] # Указательный палец
             y8 = segments[8][2]
             dx04 = x0 - x4
             dy04 = y0 - y4
@@ -253,20 +256,20 @@ while True:
                         fingers_up += 1
             
             # Определение режима работы робота по жестам
-            if fingers_up == 5:
+            if fingers_up == 5: # Подняты все пальцы
                 mode = RoboMode.stop
-            elif abs(dx48) + abs(dy48) < 50:
-                if fingers_up < 2:
+            elif abs(dx48) + abs(dy48) < 50: # Сведены указательный и большой пальцы
+                if fingers_up < 2: # Кулак
                      mode = RoboMode.detect_objects
-                else:
+                else: # Остальные пальцы раскрыты
                      mode = RoboMode.detect_faces
-            elif abs(dx04) < abs(dy04):
-                if dy04 < 0:
+            elif abs(dx04) < abs(dy04): # Большой палец направлен вертикально
+                if dy04 < 0: # Большой палец повернут вниз
                      mode = RoboMode.move_back
                 else:
                      mode = RoboMode.move_forward
-            else:
-                if dx04 < 0:
+            else: # Большой палец направлен горизонтально
+                if dx04 < 0: # Большой палец повернут влево
                      mode = RoboMode.move_left
                 else:
                      mode = RoboMode.move_right
@@ -333,19 +336,22 @@ while True:
                 search_face_detector()  
     elif mode == RoboMode.move_forward:         
         cv2.putText(frame, 'Вперед', 
-            (10, 100), font, 1, (255, 255, 255), 1, cv2.LINE_AA) 
+            (10, 100), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
+        motor.setMotorModel(100, 100, 100, 100)
     elif mode == RoboMode.move_back:         
-        cv2.putText(frame, 'back', 
-            (10, 100), font, 1, (255, 255, 255), 1, cv2.LINE_AA) 
+        cv2.putText(frame, 'Назад',
+            (10, 100), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
+        motor.setMotorModel(-100, -100, -100, -100)
     elif mode == RoboMode.move_right:         
-        cv2.putText(frame, 'right', 
+        cv2.putText(frame, 'Вправо',
             (10, 100), font, 1, (255, 255, 255), 1, cv2.LINE_AA) 
     elif mode == RoboMode.move_left:         
-        cv2.putText(frame, 'left', 
+        cv2.putText(frame, 'Влево',
             (10, 100), font, 1, (255, 255, 255), 1, cv2.LINE_AA) 
     elif mode == RoboMode.stop:         
-        cv2.putText(frame, 'stop', 
-            (10, 100), font, 1, (255, 255, 255), 1, cv2.LINE_AA) 
+        cv2.putText(frame, 'Стоп',
+            (10, 100), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
+        motor.setMotorModel(0, 0, 0, 0)
             
     # Ожидание нажатия кнопки 'Esc' для выхода
     if cv2.waitKey(1) == 27:
