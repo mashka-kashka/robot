@@ -56,8 +56,8 @@ servo.setServoPwm('0', hor_position)
 servo.setServoPwm('1', vert_position)
 
 # Подключаем моторы
-#motor = Motor()
-#SPEED = 1000
+motor = Motor()
+SPEED = 1000
 
 SEARCH_DELAY = 5 # задержка перед началом поиска лиц
 # шаги поиска лиц
@@ -338,11 +338,11 @@ while True:
     elif mode == RoboMode.move_forward:         
         cv2.putText(frame, 'Вперед', 
             (10, 100), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
-        #motor.setMotorModel(SPEED, SPEED, SPEED, SPEED)
+        motor.setMotorModel(SPEED, SPEED, SPEED, SPEED)
     elif mode == RoboMode.move_back:         
         cv2.putText(frame, 'Назад',
             (10, 100), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
-        #motor.setMotorModel(-SPEED, -SPEED, -SPEED, -SPEED)
+        motor.setMotorModel(-SPEED, -SPEED, -SPEED, -SPEED)
     elif mode == RoboMode.move_right:         
         cv2.putText(frame, 'Вправо',
             (10, 100), font, 1, (255, 255, 255), 1, cv2.LINE_AA) 
@@ -354,7 +354,7 @@ while True:
     elif mode == RoboMode.stop:         
         cv2.putText(frame, 'Стоп',
             (10, 100), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
-        #motor.setMotorModel(0, 0, 0, 0)
+        motor.setMotorModel(0, 0, 0, 0)
             
     # Ожидание нажатия кнопки 'Esc' для выхода
     if cv2.waitKey(1) == 27:
