@@ -79,8 +79,8 @@ class RoboServer:
             try:
                 self.data_connection, self.data_client_address = self.data_socket.accept()
                 print(f"Установлено соединение для передачи данных с {self.data_client_address}")
-            except:
-                print("Ошибка установки соединения для передачи данных")
+            except Exception as e:
+                print(f"Ошибка установки соединения для передачи данных: {e}")
             self.data_socket.close()
             while True:
                 try:
@@ -92,7 +92,7 @@ class RoboServer:
                 break
         except Exception as e:
             print(e)
-        self.StopTcpServer()
+        self.stop()
 
     def send_video(self):
         try:

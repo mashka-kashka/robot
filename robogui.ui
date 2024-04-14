@@ -180,6 +180,9 @@
    <property name="text">
     <string>Подключиться</string>
    </property>
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
   </action>
  </widget>
  <resources/>

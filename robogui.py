@@ -77,6 +77,7 @@ class Ui_MainWindow(object):
         self.actionExit.setIcon(icon)
         self.actionExit.setObjectName("actionExit")
         self.actionConnect = QtGui.QAction(parent=MainWindow)
+        self.actionConnect.setCheckable(True)
         self.actionConnect.setObjectName("actionConnect")
         self.menu.addAction(self.actionConnect)
         self.menu.addAction(self.actionExit)
