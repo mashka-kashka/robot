@@ -42,14 +42,14 @@ class RoboServer:
 
     def start(self):
         self.server_address = self.get_ip_address()
-        self.data_socket = socket.socket()
+        self.data_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.data_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         self.data_socket.bind(( self.server_address, 1580))
         self.data_socket.listen(1)
         self.data_thread = threading.Thread(target=self.receive_data)
         self.data_thread.start()
 
-        self.video_socket = socket.socket()
+        self.video_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.video_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
         self.video_socket.bind(( self.server_address, 1581))
         self.video_socket.listen(1)
@@ -68,13 +68,6 @@ class RoboServer:
             print('\n' + "Подключения отсутствуют")
         exit()
 
-    def reset(self):
-        self.stop()
-        self.start()
-        self.video_thread = threading.Thread(target=self.send_video)
-        self.data_thread = threading.Thread(target=self.receive_data)
-        self.video_thread.start()
-        self.data_thread.start()
     def send_data(self, data):
         try:
             self.data_connection.send(data.encode('utf-8'))
@@ -94,7 +87,6 @@ class RoboServer:
                     data = self.data_connection.recv(1024).decode('utf-8')
                 except Exception as e:
                     print(e)
-                    #self.reset()
                     break
                 print(f"Получены данные: {data}")
                 break
