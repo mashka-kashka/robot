@@ -75,6 +75,7 @@ class RoboServer:
             pass
 
     def receive_data(self):
+        print(f"receive_data")
         try:
             try:
                 self.data_connection, self.data_client_address = self.data_socket.accept()
@@ -95,12 +96,14 @@ class RoboServer:
         self.stop()
 
     def send_video(self):
+        print(f"send_video")
         try:
             connection, self.video_client_address = self.video_socket.accept()
+            print(f"send_video accept")
             self.video_connection = connection.makefile('wb')
-        except:
-            pass
-        self.server_socket.close()
+        except Exception as e:
+            print(e)
+        self.video_socket.close()
         print(f"Установлено соединение для передачи видео на адрес {self.video_client_address} ")
         camera = Picamera2()
         camera.configure(camera.create_video_configuration(main={"size": (400, 300)}))
