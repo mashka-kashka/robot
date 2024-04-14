@@ -1,15 +1,9 @@
 #!/usr/bin/python3
 
 import os
-
-# Определяем тип платформы
-raspberry = (os.uname()[1] == 'raspberrypi')
-
-if raspberry: # Подключаем только на Raspberry Pi
-    from servo import *
-    from picamera2 import Picamera2
-    from gpiozero import CPUTemperature
-    
+from servo import *
+from picamera2 import Picamera2
+from gpiozero import CPUTemperature    
 from datetime import datetime
 from mediapipe.tasks import python as mp_python
 from mediapipe.tasks.python import vision as mp_vision
@@ -90,7 +84,7 @@ face_detector = mp_face_detector.FaceDetection(
 # Модуль обнаружения объектов
 base_options = mp_python.BaseOptions(
 	# efficientdet.tflite
-    model_asset_path='./models/efficientdet_lite0.tflite')
+    model_asset_path='./models/efficientdet.tflite')
 options = mp_vision.ObjectDetectorOptions(
     base_options=base_options,
     running_mode=mp_vision.RunningMode.IMAGE,
@@ -256,7 +250,7 @@ while True:
                 mp_drawing.draw_landmarks(frame, handLandmarks, 
                             mp_hand_detector.HAND_CONNECTIONS)
     
-    if detect_object_mode # Если робот в режиме обнаружения объектов
+    if detect_object_mode: # Если робот в режиме обнаружения объектов
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
         detection_result = object_detector.detect(mp_image)
         if detection_result:
