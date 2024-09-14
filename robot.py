@@ -21,7 +21,7 @@ MARGIN = 10 # отступ от края
 ROW_SIZE = 30 # высота строки текста
 
 # Ограничения горизонтального перемещения
-INIT_HOR_POSITION = 0 # начальный горизонтальный поворот камеры
+INIT_HOR_POSITION = 70 # начальный горизонтальный поворот камеры
 MIN_HOR_ANGLE = 10 # минимальный угол поворота камеры по горизонтали
 MAX_HOR_ANGLE = 130 # максимальный угол по горизонтали
 HOR_STEP = 2 # горизонтальный шаг поворота камеры в градусах
@@ -29,14 +29,19 @@ HOR_STEP = 2 # горизонтальный шаг поворота камеры
 HOR_DELTA = 10 * HOR_STEP / 180 * 3.141 * FRAME_WIDTH
 
 # Ограничения вертикального перемещения
-INIT_VERT_POSITION = 30 # начальный вертикальный поворота камеры
-MIN_VERT_ANGLE = 80 # минимальный угол поворота камеры по вертикали
-MAX_VERT_ANGLE = 150 # максимальный угол поворота камеры по вертикали
-VERT_STEP = 2 # вертикальный шаг поворота камеры в градусах 
+INIT_VERT_POSITION = 80 # начальный вертикальный поворота камеры
+MIN_VERT_ANGLE = 50 # минимальный угол поворота камеры по вертикали
+MAX_VERT_ANGLE = 120 # максимальный угол поворота камеры по вертикали
+VERT_STEP = 5 # вертикальный шаг поворота камеры в градусах 
 # вертикальный шаг в пикселях
 VERT_DELTA = 10 * VERT_STEP / 180 * 3.141 * FRAME_HEIGHT
 
-pwm = Servo() 
+has_servo = True
+try:
+    pwm = Servo() 
+except:
+    has_servo = False
+    
 cpu = CPUTemperature()
 font = cv2.FONT_HERSHEY_COMPLEX
 
@@ -48,10 +53,11 @@ picam2.start() # запускаем камеру
 cv2.startWindowThread() # запускаем модуль компьютерного зрения
 
 # поворачиваем камеру в начальное положение
-hor_position = 70
-vert_position = 70
-pwm.setServoPwm('0', hor_position)
-pwm.setServoPwm('1', vert_position)
+hor_position = INIT_HOR_POSITION
+vert_position = INIT_VERT_POSITION
+if has_servo:
+    pwm.setServoPwm('0', hor_position)
+    pwm.setServoPwm('1', vert_position)
 
 SEARCH_DELAY = 5 # задержка перед началом поиска лиц
 # шаги поиска лиц
@@ -74,7 +80,7 @@ hand_detector = mp_hand_detector.Hands(
     static_image_mode=False, 
     min_detection_confidence=0.7, 
     min_tracking_confidence=0.7, 
-    max_num_hands=2)
+    max_num_hands=1)
                         
 # Модуль обнаружения лиц
 face_detector = mp_face_detector.FaceDetection(
@@ -121,15 +127,15 @@ def search_face_detector():
         hor_search_step = hor_search_step * -1
         # Поиск по вертикали
         vert_position = vert_position + vert_search_step
-        if vert_search_step > 0 and vert_position > MAX_VERT_ANGLE:
+        if vert_position > MAX_VERT_ANGLE:
             vert_position = MAX_VERT_ANGLE
             vert_search_step = vert_search_step * -1
-        elif vert_search_step < 0 and vert_position < MIN_VERT_ANGLE:
+        elif vert_position < MIN_VERT_ANGLE:
             vert_position = MIN_VERT_ANGLE
             vert_search_step = vert_search_step * -1
         pwm.setServoPwm('1', vert_position)
     pwm.setServoPwm('0', hor_position)
-    #print(f"hor {hor_position} vert {vert_position}")
+    print(f"hor {hor_position} vert {vert_position}")
     
 # Отслеживание лиц
 def track_detections(image, detections):
@@ -286,8 +292,9 @@ while True:
                 os.system('aplay ./audio/привет.wav')
                 say_hello = False
             
-            # Центрирование камеры на лицах
-            track_detections(frame, results.detections)
+            if has_servo:
+                # Центрирование камеры на лицах
+                track_detections(frame, results.detections)
         else: # В кадре нет лиц
             time_diff = datetime.now() - view_time
             delay = int(time_diff.total_seconds())
@@ -297,9 +304,11 @@ while True:
                     (10, 90), font, 1, (255, 255, 255), 1, cv2.LINE_AA)          
             else:
                 say_hello = True
-                cv2.putText(frame, 'Ищу лица', 
-                    (10, 90), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
-                search_face_detector()  
+                if has_servo:
+                    cv2.putText(frame, 'Ищу лица', 
+                        (10, 90), font, 1, (255, 255, 255), 1, cv2.LINE_AA)
+
+                    search_face_detector()  
 
     # Ожидание нажатия кнопки 'Esc' для выхода
     if cv2.waitKey(1) == 27:
