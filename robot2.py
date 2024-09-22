@@ -23,7 +23,7 @@ MARGIN = 10 # отступ от края
 ROW_SIZE = 30 # высота строки текста
 
 # Ограничения горизонтального перемещения
-INIT_HOR_POSITION = 0 # начальный горизонтальный поворот камеры
+INIT_HOR_POSITION = 70 # начальный горизонтальный поворот камеры
 MIN_HOR_ANGLE = 10 # минимальный угол поворота камеры по горизонтали
 MAX_HOR_ANGLE = 130 # максимальный угол по горизонтали
 HOR_STEP = 2 # горизонтальный шаг поворота камеры в градусах
@@ -31,10 +31,10 @@ HOR_STEP = 2 # горизонтальный шаг поворота камеры
 HOR_DELTA = 10 * HOR_STEP / 180 * 3.141 * FRAME_WIDTH
 
 # Ограничения вертикального перемещения
-INIT_VERT_POSITION = 30 # начальный вертикальный поворота камеры
+INIT_VERT_POSITION = 70 # начальный вертикальный поворота камеры
 MIN_VERT_ANGLE = 80 # минимальный угол поворота камеры по вертикали
 MAX_VERT_ANGLE = 150 # максимальный угол поворота камеры по вертикали
-VERT_STEP = 2 # вертикальный шаг поворота камеры в градусах 
+VERT_STEP = 5 # вертикальный шаг поворота камеры в градусах 
 # вертикальный шаг в пикселях
 VERT_DELTA = 10 * VERT_STEP / 180 * 3.141 * FRAME_HEIGHT
 
@@ -49,8 +49,8 @@ picam2.start() # запускаем камеру
 cv2.startWindowThread() # запускаем модуль компьютерного зрения
 
 # поворачиваем камеру в начальное положение
-hor_position = 70
-vert_position = 70
+hor_position = INIT_HOR_POSITION
+vert_position = INIT_VERT_POSITION
 servo = Servo()
 servo.setServoPwm('0', hor_position)
 servo.setServoPwm('1', vert_position)
@@ -194,7 +194,6 @@ def track_detections(image, detections):
     top = FRAME_HEIGHT - top
     
     if right - left > HOR_DELTA:
-
         hor_position = hor_position - HOR_STEP
         if (hor_position < MIN_HOR_ANGLE):
             hor_position = MIN_HOR_ANGLE
