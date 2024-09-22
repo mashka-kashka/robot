@@ -212,23 +212,28 @@ def track_detections(image, detections):
         if (vert_position < MIN_VERT_ANGLE):
             vert_position = MIN_VERT_ANGLE
         pwm.setServoPwm('1', vert_position)
+        
+def get_point(x, y):
+    return (int(x * FRAME_WIDTH), int(y * FRAME_HEIGHT))
 
 def draw_skeleton(frame, pose_landmarks, hands_landmarks):
     if pose_landmarks:
-        right_wrist = pose_landmarks[mp_pose_detector.PoseLandmark.RIGHT_WRIST] #16
-        rw = (right_wrist.x * FRAME_WIDTH, right_wrist.y * FRAME_HEIGHT)
+        right_wrist = pose_landmarks.landmark[mp_pose_detector.PoseLandmark.RIGHT_WRIST] #16
+        rw = get_point(right_wrist.x, right_wrist.y)
+            
+        right_elbow = pose_landmarks.landmark[mp_pose_detector.PoseLandmark.RIGHT_ELBOW] #14
+        re = get_point(right_elbow.x, right_elbow.y)
         
-        right_elbow = pose_landmarks[mp_pose_detector.PoseLandmark.RIGHT_ELBOW] #14
-        re = (right_elbow.x * FRAME_WIDTH, right_elbow.y * FRAME_HEIGHT)
-        
-        right_shoulder = pose_landmarks[mp_pose_detector.PoseLandmark.RIGHT_SHOULDER] #12
-        rs = (right_shoulder.x * FRAME_WIDTH, right_shoulder.y * FRAME_HEIGHT)
-        cv2.line(frame, rw, re, (0, 165, 255), 1))
-        cv2.line(frame, re, rs, (0, 165, 255), 1))
+        right_shoulder = pose_landmarks.landmark[mp_pose_detector.PoseLandmark.RIGHT_SHOULDER] #12
+        rs = get_point(right_shoulder.x, right_shoulder.y)
+        cv2.line(frame, rw, re, (255, 255, 255), 2)
+        cv2.line(frame, re, rs, (255, 255, 255), 2)
 
     # Отображение пальцев
-    mp_drawing.draw_landmarks(frame, hands, 
-        mp_hand_detector.HAND_CONNECTIONS)
+    if hands_landmarks:
+        for hand_landmarks in hands_landmarks:
+            mp_drawing.draw_landmarks(frame, hand_landmarks, 
+                mp_hand_detector.HAND_CONNECTIONS)
 
 while True:
     # Получаем следующий кадр от камеры
@@ -238,7 +243,7 @@ while True:
     print_cpu_temperature(frame)
     
     # Отображение скелета в кадре
-    pose_results = pose.process(frame)
+    pose_results = pose_detector.process(frame)
     
     # Поиск рук в кадре
     hand_results = hand_detector.process(frame)
