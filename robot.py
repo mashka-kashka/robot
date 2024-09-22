@@ -10,6 +10,7 @@ from mediapipe.tasks.python import vision as mp_vision
 from mediapipe.python.solutions import drawing_utils as mp_drawing
 from mediapipe.python.solutions import face_detection as mp_face_detector
 from mediapipe.python.solutions import hands as mp_hand_detector
+from mediapipe.python.solutions import pose as mp_pose_detector
 import mediapipe as mp
 import cv2
 import json
@@ -86,10 +87,17 @@ hand_detector = mp_hand_detector.Hands(
 face_detector = mp_face_detector.FaceDetection(
     min_detection_confidence=0.7, 
     model_selection=1)
+
+# Модуль обнаружения позы
+pose_detector = mp_pose_detector.Pose(
+    static_image_mode=False,
+    model_complexity=2,
+    enable_segmentation=True,
+    min_detection_confidence=0.5)
                                 
 # Модуль обнаружения объектов
 base_options = mp_python.BaseOptions(
-	# efficientdet.tflite
+    # efficientdet.tflite
     model_asset_path='./models/efficientdet.tflite')
 options = mp_vision.ObjectDetectorOptions(
     base_options=base_options,
@@ -205,17 +213,44 @@ def track_detections(image, detections):
             vert_position = MIN_VERT_ANGLE
         pwm.setServoPwm('1', vert_position)
 
+def draw_skeleton(frame, pose_landmarks, hands_landmarks):
+    if pose_landmarks:
+        right_wrist = pose_landmarks[mp_pose_detector.PoseLandmark.RIGHT_WRIST] #16
+        rw = (right_wrist.x * FRAME_WIDTH, right_wrist.y * FRAME_HEIGHT)
+        
+        right_elbow = pose_landmarks[mp_pose_detector.PoseLandmark.RIGHT_ELBOW] #14
+        re = (right_elbow.x * FRAME_WIDTH, right_elbow.y * FRAME_HEIGHT)
+        
+        right_shoulder = pose_landmarks[mp_pose_detector.PoseLandmark.RIGHT_SHOULDER] #12
+        rs = (right_shoulder.x * FRAME_WIDTH, right_shoulder.y * FRAME_HEIGHT)
+        cv2.line(frame, rw, re, (0, 165, 255), 1))
+        cv2.line(frame, re, rs, (0, 165, 255), 1))
+
+    # Отображение пальцев
+    mp_drawing.draw_landmarks(frame, hands, 
+        mp_hand_detector.HAND_CONNECTIONS)
+
 while True:
-	# Получаем следующий кадр от камеры
+    # Получаем следующий кадр от камеры
     frame = picam2.capture_array()
            
     # Отображение температуры процессора
     print_cpu_temperature(frame)
     
-    # Обнаружение рук в кадре
-    results = hand_detector.process(frame)
-    if results.multi_hand_landmarks:
-        for handLandmarks in results.multi_hand_landmarks:
+    # Отображение скелета в кадре
+    pose_results = pose.process(frame)
+    
+    # Поиск рук в кадре
+    hand_results = hand_detector.process(frame)
+
+    # Отображение скелета
+    draw_skeleton(frame, 
+        pose_results.pose_landmarks, 
+        hand_results.multi_hand_landmarks)
+
+    # Распознавание жестов
+    if hand_results.multi_hand_landmarks:
+        for handLandmarks in hand_results.multi_hand_landmarks:
             view_time = datetime.now()
             
             segments=[]
@@ -251,11 +286,7 @@ while True:
                 cv2.putText(frame, 
                     f'Поднято пальцев {fingers_up}', 
                     (10, 60), font, 1, (255, 255, 255), 1, cv2.LINE_AA) 
-                
-                # Отображение пальцев
-                mp_drawing.draw_landmarks(frame, handLandmarks, 
-                            mp_hand_detector.HAND_CONNECTIONS)
-    
+                    
     if detect_object_mode: # Если робот в режиме обнаружения объектов
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
         detection_result = object_detector.detect(mp_image)
