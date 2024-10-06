@@ -1,18 +1,25 @@
+#!/usr/bin/python3
+
+
 from time import time, localtime, strftime
 from PyQt6.QtGui import QTextFormat, QColor, QTextCursor, QImage, QPixmap
 from PyQt6.QtWidgets import QApplication, QMainWindow, QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, QGridLayout
 from PyQt6.QtCore import QObject, QThread, Qt
-import mediapipe as mp
-from mediapipe import solutions
-from mediapipe.framework.formats import landmark_pb2
-import numpy as np
-import matplotlib.pyplot as plt
-
 from camera import Camera
 from main import Ui_MainWindow
 from messagetype import MessageType
+
+from mediapipe import solutions
+from mediapipe.framework.formats import landmark_pb2
+from mediapipe.tasks import python
+from mediapipe.tasks.python import vision
+
+import matplotlib.pyplot as plt
+import mediapipe as mp
+import numpy as np
 import sys
 import cv2
+import os
 
 class QRobot(QObject):
     def __init__(self, ui):
@@ -24,6 +31,7 @@ class QRobot(QObject):
         self.camera = Camera()
         self.camera.moveToThread(self.thread)
         self.camera.frameCaptured.connect(self.processCameraFrame)
+        self.camera.log.connect(self.log)
         self.thread.started.connect(self.camera.run)
         self.thread.start()
 
@@ -38,21 +46,15 @@ class QRobot(QObject):
         self.graphicsView.setScene(self.scene)
         self.scenePixmapItem = None
 
-        # STEP 1: Import the necessary modules.
-        import mediapipe as mp
-        from mediapipe.tasks import python
-        from mediapipe.tasks.python import vision
-
-        # STEP 2: Create an FaceLandmarker object.
         base_options = python.BaseOptions(model_asset_path='models/face_landmarker.task')
         options = vision.FaceLandmarkerOptions(base_options=base_options,
-                                               output_face_blendshapes=True,
-                                               output_facial_transformation_matrixes=True,
-                                               num_faces=1)
+                                              output_face_blendshapes=True,
+                                              output_facial_transformation_matrixes=True,
+                                              num_faces=1)
         self.faceDetector = vision.FaceLandmarker.create_from_options(options)
 
     def run(self):
-        self.log(f"Начало работы")
+        self.log(f"Начало работы на {os.uname().nodename}")
         self.log(f"Версия OpenCV: {cv2.__version__}")
 
     def draw_landmarks_on_image(self, rgb_image, detection_result):
@@ -99,10 +101,8 @@ class QRobot(QObject):
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
         detection_result = self.faceDetector.detect(mp_image)
 
-        # STEP 5: Process the detection result. In this case, visualize it.
         frame = self.draw_landmarks_on_image(mp_image.numpy_view(), detection_result)
         #cv2_imshow(cv2.cvtColor(annotated_image, cv2.COLOR_RGB2BGR))
-
 
         image = QImage(
             frame.data,
