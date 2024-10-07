@@ -6,8 +6,9 @@ from PyQt6.QtGui import QTextFormat, QColor, QTextCursor, QImage, QPixmap
 from PyQt6.QtWidgets import QApplication, QMainWindow, QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, QGridLayout
 from PyQt6.QtCore import QObject, QThread, Qt
 from camera import Camera
-from main import Ui_MainWindow
-from messagetype import MessageType
+from main_window import MainWindow
+from main_window_ui import Ui_MainWindow
+from message_type import MessageType
 
 from mediapipe import solutions
 from mediapipe.framework.formats import landmark_pb2
@@ -30,7 +31,7 @@ class QRobot(QObject):
         self.thread = QThread()
         self.camera = Camera()
         self.camera.moveToThread(self.thread)
-        self.camera.frameCaptured.connect(self.processCameraFrame)
+        self.camera.frame_captured.connect(self.process_camera_frame)
         self.camera.log.connect(self.log)
         self.thread.started.connect(self.camera.run)
         self.thread.start()
@@ -95,7 +96,7 @@ class QRobot(QObject):
 
         return annotated_image
 
-    def processCameraFrame(self, frame):
+    def process_camera_frame(self, frame):
         #frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
@@ -121,7 +122,7 @@ class QRobot(QObject):
 
         self.graphicsView.fitInView(self.scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
 
-    def stopCamera(self):
+    def stop_camera(self):
         self.camera.stop()
         self.thread.quit()
         self.thread.wait()
@@ -140,11 +141,12 @@ class QRobot(QObject):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    MainWindow = QMainWindow()
+    main_window = MainWindow()
     ui = Ui_MainWindow()
-    ui.setupUi(MainWindow)
+    ui.setupUi(main_window)
     robot = QRobot(ui)
+    main_window.init(robot, ui)
+    main_window.show()
     robot.run()
-    MainWindow.show()
     app.exec()
-    robot.stopCamera()
+    robot.stop_camera()

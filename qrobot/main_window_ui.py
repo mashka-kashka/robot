@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file 'main.ui'
+# Form implementation generated from reading ui file 'main_window.ui'
 #
 # Created by: PyQt6 UI code generator 6.4.2
 #
@@ -12,7 +12,8 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(764, 497)
+        MainWindow.resize(987, 668)
+        MainWindow.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonIconOnly)
         self.centralwidget = QtWidgets.QWidget(parent=MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
@@ -45,21 +46,26 @@ class Ui_MainWindow(object):
         self.verticalLayout.addWidget(self.splitter)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(parent=MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 764, 19))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 987, 19))
         self.menubar.setObjectName("menubar")
         self.menu = QtWidgets.QMenu(parent=self.menubar)
         self.menu.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.DefaultContextMenu)
         self.menu.setTearOffEnabled(False)
+        self.menu.setSeparatorsCollapsible(False)
         self.menu.setToolTipsVisible(True)
         self.menu.setObjectName("menu")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(parent=MainWindow)
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
+        self.toolBar = QtWidgets.QToolBar(parent=MainWindow)
+        self.toolBar.setObjectName("toolBar")
+        MainWindow.addToolBar(QtCore.Qt.ToolBarArea.TopToolBarArea, self.toolBar)
         self.actionStartStop = QtGui.QAction(parent=MainWindow)
         self.actionStartStop.setCheckable(True)
         icon1 = QtGui.QIcon()
         icon1.addPixmap(QtGui.QPixmap("icons/play.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon1.addPixmap(QtGui.QPixmap("icons/stop.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.On)
         self.actionStartStop.setIcon(icon1)
         self.actionStartStop.setObjectName("actionStartStop")
         self.actionRobotConfig = QtGui.QAction(parent=MainWindow)
@@ -73,14 +79,16 @@ class Ui_MainWindow(object):
         self.actionExit.setIcon(icon3)
         self.actionExit.setObjectName("actionExit")
         self.menu.addAction(self.actionRobotConfig)
-        self.menu.addAction(self.actionStartStop)
         self.menu.addSeparator()
-        self.menu.addAction(self.actionExit)
         self.menubar.addAction(self.menu.menuAction())
+        self.toolBar.addAction(self.actionStartStop)
+        self.toolBar.addSeparator()
+        self.toolBar.addAction(self.actionExit)
 
         self.retranslateUi(MainWindow)
         self.tabWidget.setCurrentIndex(0)
         self.actionExit.triggered.connect(MainWindow.close) # type: ignore
+        self.actionStartStop.toggled['bool'].connect(MainWindow.on_start_stop) # type: ignore
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
@@ -89,7 +97,8 @@ class Ui_MainWindow(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabCamera), _translate("MainWindow", "Камера"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("MainWindow", "Tab 2"))
         self.menu.setTitle(_translate("MainWindow", "Робот"))
-        self.actionStartStop.setText(_translate("MainWindow", "Начать"))
+        self.toolBar.setWindowTitle(_translate("MainWindow", "toolBar"))
+        self.actionStartStop.setText(_translate("MainWindow", "Запуск"))
         self.actionStartStop.setIconText(_translate("MainWindow", "Запуск"))
         self.actionStartStop.setStatusTip(_translate("MainWindow", "Запустить сервер для передачи данных"))
         self.actionRobotConfig.setText(_translate("MainWindow", "Настройки"))

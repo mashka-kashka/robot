@@ -6,12 +6,15 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>764</width>
-    <height>497</height>
+    <width>987</width>
+    <height>668</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Робот</string>
+  </property>
+  <property name="toolButtonStyle">
+   <enum>Qt::ToolButtonIconOnly</enum>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout">
@@ -80,7 +83,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>764</width>
+     <width>987</width>
      <height>19</height>
     </rect>
    </property>
@@ -94,27 +97,43 @@
     <property name="title">
      <string>Робот</string>
     </property>
+    <property name="separatorsCollapsible">
+     <bool>false</bool>
+    </property>
     <property name="toolTipsVisible">
      <bool>true</bool>
     </property>
     <addaction name="actionRobotConfig"/>
-    <addaction name="actionStartStop"/>
     <addaction name="separator"/>
-    <addaction name="actionExit"/>
    </widget>
    <addaction name="menu"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QToolBar" name="toolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionStartStop"/>
+   <addaction name="separator"/>
+   <addaction name="actionExit"/>
+  </widget>
   <action name="actionStartStop">
    <property name="checkable">
     <bool>true</bool>
    </property>
    <property name="icon">
     <iconset>
-     <normaloff>icons/play.png</normaloff>icons/play.png</iconset>
+     <normaloff>icons/play.png</normaloff>
+     <normalon>icons/stop.png</normalon>icons/play.png</iconset>
    </property>
    <property name="text">
-    <string>Начать</string>
+    <string>Запуск</string>
    </property>
    <property name="iconText">
     <string>Запуск</string>
@@ -169,5 +188,24 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionStartStop</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_start_stop(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>493</x>
+     <y>333</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
+ <slots>
+  <slot>on_start_stop(bool)</slot>
+ </slots>
 </ui>
