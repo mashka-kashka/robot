@@ -12,7 +12,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(987, 668)
+        MainWindow.resize(1104, 836)
         MainWindow.setToolButtonStyle(QtCore.Qt.ToolButtonStyle.ToolButtonIconOnly)
         self.centralwidget = QtWidgets.QWidget(parent=MainWindow)
         self.centralwidget.setObjectName("centralwidget")
@@ -29,7 +29,7 @@ class Ui_MainWindow(object):
         self.splitter.setOrientation(QtCore.Qt.Orientation.Vertical)
         self.splitter.setObjectName("splitter")
         self.tabWidget = QtWidgets.QTabWidget(parent=self.splitter)
-        self.tabWidget.setMinimumSize(QtCore.QSize(0, 300))
+        self.tabWidget.setMinimumSize(QtCore.QSize(0, 480))
         self.tabWidget.setObjectName("tabWidget")
         self.tabCamera = QtWidgets.QWidget()
         self.tabCamera.setObjectName("tabCamera")
@@ -46,7 +46,7 @@ class Ui_MainWindow(object):
         self.verticalLayout.addWidget(self.splitter)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(parent=MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 987, 19))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1104, 19))
         self.menubar.setObjectName("menubar")
         self.menu = QtWidgets.QMenu(parent=self.menubar)
         self.menu.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.DefaultContextMenu)
