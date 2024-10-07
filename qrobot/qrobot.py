@@ -19,7 +19,7 @@ import mediapipe as mp
 import numpy as np
 import sys
 import cv2
-import os
+import platform
 
 class QRobot(QObject):
     def __init__(self, ui):
@@ -54,7 +54,7 @@ class QRobot(QObject):
         self.faceDetector = vision.FaceLandmarker.create_from_options(options)
 
     def run(self):
-        self.log(f"Начало работы на {os.uname().nodename}")
+        self.log(f"Начало работы на {platform.uname().system}")
         self.log(f"Версия OpenCV: {cv2.__version__}")
 
     def draw_landmarks_on_image(self, rgb_image, detection_result):

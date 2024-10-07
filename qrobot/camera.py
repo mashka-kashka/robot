@@ -1,8 +1,8 @@
 from PyQt6.QtCore import QObject, pyqtSignal
 from messagetype import MessageType
+import platform
 import time
 import cv2
-import os
 
 
 # Параметры кадра
@@ -21,7 +21,7 @@ class Camera(QObject):
 
     def run(self):
         self.running = True
-        if os.uname().nodename == "raspberrypi":
+        if platform.uname().system == "raspberrypi":
             from picamera2 import Picamera2
             picam2 = Picamera2()
             picam2.configure(picam2.create_preview_configuration(
