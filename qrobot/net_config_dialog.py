@@ -19,8 +19,20 @@ class NetConfigDialog(QDialog):
             except:
                 continue
 
-    def get_address(self):
+    def get_host(self):
         return self.ui.cbAddress.currentText()
 
-    def get_port(self):
-        return self.ui.lePort.text()
+    def set_host(self, address):
+        return self.ui.cbAddress.setCurrentText(address)
+
+    def get_data_port(self):
+        return self.ui.leDataPort.text()
+
+    def set_data_port(self, port):
+        return self.ui.leDataPort.setText(str(port))
+
+    def get_video_port(self):
+        return self.ui.leVideoPort.text()
+
+    def set_video_port(self, port):
+        return self.ui.leVideoPort.setText(str(port))

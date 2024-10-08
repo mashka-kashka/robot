@@ -9,31 +9,30 @@ from camera import Camera
 from main_window import MainWindow
 from main_window_ui import Ui_MainWindow
 from message_type import MessageType
+from net_config_dialog import NetConfigDialog
 
+import mediapipe as mp
 from mediapipe import solutions
 from mediapipe.framework.formats import landmark_pb2
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
+import netifaces as ni
 import matplotlib.pyplot as plt
-import mediapipe as mp
 import numpy as np
+import platform
+import toml
 import sys
 import cv2
-import platform
-
-from net_config_dialog import NetConfigDialog
 
 
 class QRobot(QObject):
-    server_started = False
-    client_started = False
-
     def __init__(self, ui):
         super().__init__()
         self.ui = ui
         self.logger = ui.teLog
 
+        # Поток для камеры
         self.thread = QThread()
         self.camera = Camera()
         self.camera.moveToThread(self.thread)
@@ -134,14 +133,7 @@ class QRobot(QObject):
         self.thread.wait()
 
     def start_server(self):
-        _dialog = NetConfigDialog()
-        if _dialog.exec():
-            address = _dialog.get_address()
-            port = _dialog.get_port()
-            self.log(f"Запуск сервера на {address}:{port}", MessageType.STATUS)
-            self.server_started = True
-        else:
-            self.ui.actionStartStop.setChecked(False)
+        self.server_started = True
 
     def stop_server(self):
         if self.server_started:

@@ -78,36 +78,6 @@
     </item>
    </layout>
   </widget>
-  <widget class="QMenuBar" name="menubar">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>1104</width>
-     <height>22</height>
-    </rect>
-   </property>
-   <widget class="QMenu" name="menu">
-    <property name="contextMenuPolicy">
-     <enum>Qt::DefaultContextMenu</enum>
-    </property>
-    <property name="tearOffEnabled">
-     <bool>false</bool>
-    </property>
-    <property name="title">
-     <string>Робот</string>
-    </property>
-    <property name="separatorsCollapsible">
-     <bool>false</bool>
-    </property>
-    <property name="toolTipsVisible">
-     <bool>true</bool>
-    </property>
-    <addaction name="actionRobotConfig"/>
-    <addaction name="separator"/>
-   </widget>
-   <addaction name="menu"/>
-  </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <widget class="QToolBar" name="toolBar">
    <property name="windowTitle">
@@ -119,6 +89,7 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
+   <addaction name="actionConfig"/>
    <addaction name="actionStartStop"/>
    <addaction name="separator"/>
    <addaction name="actionExit"/>
@@ -142,7 +113,7 @@
     <string>Запустить сервер для передачи данных</string>
    </property>
   </action>
-  <action name="actionRobotConfig">
+  <action name="actionConfig">
    <property name="icon">
     <iconset>
      <normaloff>icons/gear.png</normaloff>icons/gear.png</iconset>
@@ -204,8 +175,25 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionConfig</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_config()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>551</x>
+     <y>417</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>on_start_stop(bool)</slot>
+  <slot>on_config()</slot>
  </slots>
 </ui>
