@@ -22,7 +22,13 @@ import sys
 import cv2
 import platform
 
+from net_config_dialog import NetConfigDialog
+
+
 class QRobot(QObject):
+    server_started = False
+    client_started = False
+
     def __init__(self, ui):
         super().__init__()
         self.ui = ui
@@ -126,6 +132,21 @@ class QRobot(QObject):
         self.camera.stop()
         self.thread.quit()
         self.thread.wait()
+
+    def start_server(self):
+        _dialog = NetConfigDialog()
+        if _dialog.exec():
+            address = _dialog.get_address()
+            port = _dialog.get_port()
+            self.log(f"Запуск сервера на {address}:{port}", MessageType.STATUS)
+            self.server_started = True
+        else:
+            self.ui.actionStartStop.setChecked(False)
+
+    def stop_server(self):
+        if self.server_started:
+            self.server_started = False
+            self.log("Сервер остановлен", MessageType.STATUS)
 
     def log(self, message, type = MessageType.STATUS):
         fmt = QTextFormat()

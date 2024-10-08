@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file 'main_window.ui'
+# Form implementation generated from reading ui file '.\main_window.ui'
 #
 # Created by: PyQt6 UI code generator 6.4.2
 #
@@ -34,7 +34,7 @@ class Ui_MainWindow(object):
         self.tabCamera = QtWidgets.QWidget()
         self.tabCamera.setObjectName("tabCamera")
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap("icons/eye.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon.addPixmap(QtGui.QPixmap(".\\icons/eye.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.tabWidget.addTab(self.tabCamera, icon, "")
         self.tab_2 = QtWidgets.QWidget()
         self.tab_2.setObjectName("tab_2")
@@ -46,7 +46,7 @@ class Ui_MainWindow(object):
         self.verticalLayout.addWidget(self.splitter)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(parent=MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1104, 19))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1104, 22))
         self.menubar.setObjectName("menubar")
         self.menu = QtWidgets.QMenu(parent=self.menubar)
         self.menu.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.DefaultContextMenu)
@@ -64,18 +64,18 @@ class Ui_MainWindow(object):
         self.actionStartStop = QtGui.QAction(parent=MainWindow)
         self.actionStartStop.setCheckable(True)
         icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap("icons/play.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        icon1.addPixmap(QtGui.QPixmap("icons/stop.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.On)
+        icon1.addPixmap(QtGui.QPixmap(".\\icons/play.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon1.addPixmap(QtGui.QPixmap(".\\icons/stop.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.On)
         self.actionStartStop.setIcon(icon1)
         self.actionStartStop.setObjectName("actionStartStop")
         self.actionRobotConfig = QtGui.QAction(parent=MainWindow)
         icon2 = QtGui.QIcon()
-        icon2.addPixmap(QtGui.QPixmap("icons/gear.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon2.addPixmap(QtGui.QPixmap(".\\icons/gear.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.actionRobotConfig.setIcon(icon2)
         self.actionRobotConfig.setObjectName("actionRobotConfig")
         self.actionExit = QtGui.QAction(parent=MainWindow)
         icon3 = QtGui.QIcon()
-        icon3.addPixmap(QtGui.QPixmap("icons/quit.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon3.addPixmap(QtGui.QPixmap(".\\icons/quit.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.actionExit.setIcon(icon3)
         self.actionExit.setObjectName("actionExit")
         self.menu.addAction(self.actionRobotConfig)
