@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>Робот</string>
   </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>icons/robot.png</normaloff>icons/robot.png</iconset>
+  </property>
   <property name="toolButtonStyle">
    <enum>Qt::ToolButtonIconOnly</enum>
   </property>

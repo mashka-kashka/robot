@@ -1,6 +1,6 @@
 from time import time, localtime, strftime
 from PyQt6 import QtCore
-from PyQt6.QtGui import QTextFormat, QColor, QTextCursor, QPixmap, QImage
+from PyQt6.QtGui import QTextFormat, QColor, QTextCursor, QPixmap, QImage, QIcon
 from PyQt6.QtWidgets import QMainWindow, QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, QGridLayout
 from PyQt6.QtCore import pyqtSignal, Qt
 from main_window_ui import Ui_MainWindow
@@ -46,7 +46,7 @@ class QRobotMainWindow(QMainWindow):
             image.shape[0],
             QImage.Format.Format_BGR888,
         )
-        
+
         _pixmap = QPixmap.fromImage(_image)
 
         if self.scenePixmapItem is None:

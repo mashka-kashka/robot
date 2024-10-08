@@ -16,9 +16,10 @@ class QRobot(QObject):
         _options = vision.FaceLandmarkerOptions(base_options=_base_options,
                                               output_face_blendshapes=True,
                                               output_facial_transformation_matrixes=True,
-                                              num_faces=1)
+                                              num_faces=3)
         self.faceDetector = vision.FaceLandmarker.create_from_options(_options)
 
+    # Обработка изображения
     def process_image(self, image):
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image
                             )
