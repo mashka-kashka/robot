@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file '.\main_window.ui'
+# Form implementation generated from reading ui file 'main_window.ui'
 #
 # Created by: PyQt6 UI code generator 6.4.2
 #
@@ -34,7 +34,7 @@ class Ui_MainWindow(object):
         self.tabCamera = QtWidgets.QWidget()
         self.tabCamera.setObjectName("tabCamera")
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(".\\icons/eye.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon.addPixmap(QtGui.QPixmap("icons/eye.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.tabWidget.addTab(self.tabCamera, icon, "")
         self.tab_2 = QtWidgets.QWidget()
         self.tab_2.setObjectName("tab_2")
@@ -54,18 +54,18 @@ class Ui_MainWindow(object):
         self.actionStartStop = QtGui.QAction(parent=MainWindow)
         self.actionStartStop.setCheckable(True)
         icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap(".\\icons/play.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
-        icon1.addPixmap(QtGui.QPixmap(".\\icons/stop.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.On)
+        icon1.addPixmap(QtGui.QPixmap("icons/play.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon1.addPixmap(QtGui.QPixmap("icons/stop.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.On)
         self.actionStartStop.setIcon(icon1)
         self.actionStartStop.setObjectName("actionStartStop")
         self.actionConfig = QtGui.QAction(parent=MainWindow)
         icon2 = QtGui.QIcon()
-        icon2.addPixmap(QtGui.QPixmap(".\\icons/gear.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon2.addPixmap(QtGui.QPixmap("icons/gear.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.actionConfig.setIcon(icon2)
         self.actionConfig.setObjectName("actionConfig")
         self.actionExit = QtGui.QAction(parent=MainWindow)
         icon3 = QtGui.QIcon()
-        icon3.addPixmap(QtGui.QPixmap(".\\icons/quit.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
+        icon3.addPixmap(QtGui.QPixmap("icons/quit.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         self.actionExit.setIcon(icon3)
         self.actionExit.setObjectName("actionExit")
         self.toolBar.addAction(self.actionConfig)

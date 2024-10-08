@@ -1,13 +1,13 @@
 from PyQt6.QtCore import QObject, pyqtSignal
-from message_type import MessageType
+from log_message_type import LogMessageType
 import time
 import cv2
 import platform
 import toml
 
 class Camera(QObject):
-    frame_captured = pyqtSignal(object)
-    log = pyqtSignal(object, object)
+    frame_captured_signal = pyqtSignal(object)
+    log_signal = pyqtSignal(object, object)
 
     def __init__(self, camera_index=0):
         super().__init__()
@@ -24,10 +24,10 @@ class Camera(QObject):
             picam2.configure(picam2.create_preview_configuration(
                 main={"format": 'RGB888', "size": (self.config["camera"]["width"], self.config["camera"]["height"])}))
             picam2.start() # запускаем камеру
-            self.log.emit(f"Камера запущена", MessageType.STATUS)
+            self.log_signal.emit(f"Камера запущена", LogMessageType.STATUS)
             while self.running:
                 frame = picam2.capture_array()
-                self.frame_captured.emit(frame)
+                self.frame_captured_signal.emit(frame)
                 time.sleep(self.config["camera"]["sleep"])
             picam2.stop()
         else:
@@ -35,10 +35,10 @@ class Camera(QObject):
             while self.running:
                 ret, frame = cap.read()
                 if ret:
-                    self.frame_captured.emit(frame)
+                    self.frame_captured_signal.emit(frame)
                     time.sleep(self.config["camera"]["sleep"])
                 else:
-                    self.log.emit(f"Ошибка камеры", MessageType.ERROR)
+                    self.log_signal.emit(f"Ошибка камеры", LogMessageType.ERROR)
                     self.running = False
                     break
             cap.release()
