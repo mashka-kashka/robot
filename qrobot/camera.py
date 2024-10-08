@@ -27,7 +27,7 @@ class Camera(QObject):
             picam2.configure(picam2.create_preview_configuration(
                 main={"format": 'RGB888', "size": (FRAME_WIDTH, FRAME_HEIGHT)}))
             picam2.start() # запускаем камеру
-            self.log.emit(f"camera started", MessageType.ERROR)
+            self.log.emit(f"Камера запущена", MessageType.STATUS)
             while self.running:
                 frame = picam2.capture_array()
                 self.frame_captured.emit(frame)
@@ -41,7 +41,7 @@ class Camera(QObject):
                     self.frame_captured.emit(frame)
                     time.sleep(SLEEP_TIME)
                 else:
-                    self.log.emit(f"camera error", MessageType.ERROR)
+                    self.log.emit(f"Ошибка камеры", MessageType.ERROR)
                     self.running = False
                     break
             cap.release()
