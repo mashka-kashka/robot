@@ -6,8 +6,9 @@ import platform
 import toml
 
 class Camera(QObject):
+    activate_robot_signal = pyqtSignal()
+    activate_computer_signal = pyqtSignal()
     frame_captured_signal = pyqtSignal(object)
-    log_signal = pyqtSignal(object, object)
 
     def __init__(self, camera_index=0):
         super().__init__()
@@ -24,7 +25,7 @@ class Camera(QObject):
             picam2.configure(picam2.create_preview_configuration(
                 main={"format": 'RGB888', "size": (self.config["camera"]["width"], self.config["camera"]["height"])}))
             picam2.start() # запускаем камеру
-            self.log_signal.emit(f"Камера запущена", LogMessageType.STATUS)
+            self.activate_robot_signal.emit()
             while self.running:
                 frame = picam2.capture_array()
                 self.frame_captured_signal.emit(frame)
@@ -32,15 +33,18 @@ class Camera(QObject):
             picam2.stop()
         else:
             cap = cv2.VideoCapture(self.camera_index)
-            while self.running:
-                ret, frame = cap.read()
-                if ret:
-                    self.frame_captured_signal.emit(frame)
-                    time.sleep(self.config["camera"]["sleep"])
-                else:
-                    self.log_signal.emit(f"Ошибка камеры", LogMessageType.ERROR)
-                    self.running = False
-                    break
+            if cap.isOpened():
+                while self.running:
+                    ret, frame = cap.read()
+                    if ret:
+                        self.frame_captured_signal.emit(frame)
+                        time.sleep(self.config["camera"]["sleep"])
+                    else:
+                        self.running = False
+                        break
+            else:
+                self.running = False
+                self.activate_computer_signal.emit()
             cap.release()
 
     def stop(self):

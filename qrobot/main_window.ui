@@ -94,27 +94,28 @@
     <bool>false</bool>
    </attribute>
    <addaction name="actionConfig"/>
-   <addaction name="actionStartStop"/>
+   <addaction name="actionActivateRobot"/>
+   <addaction name="actionActivateComputer"/>
    <addaction name="separator"/>
    <addaction name="actionExit"/>
   </widget>
-  <action name="actionStartStop">
+  <action name="actionActivateRobot">
    <property name="checkable">
     <bool>true</bool>
    </property>
    <property name="icon">
     <iconset>
-     <normaloff>icons/play.png</normaloff>
-     <normalon>icons/stop.png</normalon>icons/play.png</iconset>
+     <normaloff>icons/robot_green.png</normaloff>
+     <normalon>icons/robot_red.png</normalon>icons/robot_green.png</iconset>
    </property>
    <property name="text">
-    <string>Запуск</string>
+    <string>Активировать робота</string>
    </property>
    <property name="iconText">
-    <string>Запуск</string>
+    <string>Активация</string>
    </property>
    <property name="statusTip">
-    <string>Запустить сервер для передачи данных</string>
+    <string>Активировать робота</string>
    </property>
   </action>
   <action name="actionConfig">
@@ -144,6 +145,19 @@
     <string>Ctrl+X</string>
    </property>
   </action>
+  <action name="actionActivateComputer">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/chip-green.png</normaloff>
+     <normalon>icons/chip-red.png</normalon>icons/chip-green.png</iconset>
+   </property>
+   <property name="text">
+    <string>Активировать компьютер</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections>
@@ -164,10 +178,10 @@
    </hints>
   </connection>
   <connection>
-   <sender>actionStartStop</sender>
+   <sender>actionActivateRobot</sender>
    <signal>toggled(bool)</signal>
    <receiver>MainWindow</receiver>
-   <slot>on_start_stop(bool)</slot>
+   <slot>on_activate_robot(bool)</slot>
    <hints>
     <hint type="sourcelabel">
      <x>-1</x>
@@ -195,9 +209,26 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionActivateComputer</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>MainWindow</receiver>
+   <slot>on_activate_computer(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>551</x>
+     <y>417</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
-  <slot>on_start_stop(bool)</slot>
+  <slot>on_activate_robot(bool)</slot>
   <slot>on_config()</slot>
+  <slot>on_activate_computer(bool)</slot>
  </slots>
 </ui>

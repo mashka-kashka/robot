@@ -8,6 +8,7 @@ from camera import Camera
 from robot import QRobot
 
 import platform
+import socket
 import toml
 import sys
 import cv2
@@ -28,8 +29,9 @@ class QRobotApplication(QApplication):
         self.camera_thread = QThread()
         self.camera = Camera()
         self.camera.moveToThread(self.camera_thread)
+        self.camera.activate_robot_signal.connect(self.window.activate_robot)
+        self.camera.activate_computer_signal.connect(self.window.activate_computer)
         self.camera.frame_captured_signal.connect(self.robot.process_image)
-        self.camera.log_signal.connect(self.window.log_signal)
         self.camera_thread.started.connect(self.camera.run)
         self.camera_thread.start()
 
@@ -44,15 +46,57 @@ class QRobotApplication(QApplication):
         self.camera.stop()
         self.camera_thread.quit()
         self.camera_thread.wait()
+        self.stop_server()
 
     def start_server(self):
-        self.server_started = True
-        self.log_signal.emit("Сервер запущен", LogMessageType.STATUS)
+        with open('config.toml', 'r') as f:
+            self.config = toml.load(f)
+            _video_port = self.config["network"]["video_port"]
+            _data_port = self.config["network"]["data_port"]
+            _host = self.config["network"]["host"]
+            self.video_socket = socket.socket()
+            self.video_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+            self.video_socket.bind((_host, int(_video_port)))
+            self.video_socket.listen(1)
+            self.log_signal.emit(f"Ожидается подключение к {_host}:{_video_port} для передачи видео", LogMessageType.STATUS)
+
+            #self.video_thread = QThread()
+            #self.camera = Camera()
+            #self.camera.moveToThread(self.video_thread)
+            #self.camera.frame_captured_signal.connect(self.robot.process_image)
+            #self.camera.log_signal.connect(self.window.log_signal)
+            #self.video_thread.started.connect(self.camera.run)
+            #self.video_thread.start()
+
+            self.data_socket = socket.socket()
+            self.data_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+            self.data_socket.bind((_host, int(_data_port)))
+            self.data_socket.listen(1)
+            self.log_signal.emit(f"Ожидается подключение к {_host}:{_data_port} для передачи данных", LogMessageType.STATUS)
 
     def stop_server(self):
-        if self.server_started:
-            self.server_started = False
-            self.log_signal.emit("Сервер остановлен", LogMessageType.STATUS)
+        try:
+            self.video_connection.close()
+            self.video_thread.quit()
+            self.video_thread.wait()
+
+            self.data_connection.close()
+            self.data_thread.quit()
+            self.data_thread.wait()
+        except Exception as e:
+            self.log_signal.emit("Нет активных подключений", LogMessageType.STATUS)
+
+    def reset_server(self):
+        self.stop_server()
+        self.start_server()
+
+
+        #self.send_video = Thread(target=self.send_video)
+        #self.read_data = Thread(target=self.read_data)
+        #self.send_video.start()
+        #self.read_data.start()
+
+
 
 if __name__ == "__main__":
     app = QRobotApplication(sys.argv)

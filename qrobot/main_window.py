@@ -13,6 +13,10 @@ class QRobotMainWindow(QMainWindow):
     log_signal = pyqtSignal(object, object)
     start_server_signal = pyqtSignal()
     stop_server_signal = pyqtSignal()
+    reset_server_signal = pyqtSignal()
+    start_client_signal = pyqtSignal()
+    stop_client_signal = pyqtSignal()
+    reset_client_signal = pyqtSignal()
 
     def __init__(self, app):
         super().__init__()
@@ -22,6 +26,7 @@ class QRobotMainWindow(QMainWindow):
         self.log_signal.connect(self.on_log)
         self.start_server_signal.connect(self.app.start_server)
         self.stop_server_signal.connect(self.app.stop_server)
+        self.reset_server_signal.connect(self.app.reset_server)
 
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
@@ -83,18 +88,44 @@ class QRobotMainWindow(QMainWindow):
             self.config["network"]["host"] =_dialog.get_host()
             with open('config.toml', 'w') as f:
                 toml.dump(self.config, f)
-        else:
-            self.ui.actionStartStop.setChecked(False)
 
-    def on_start_stop(self, start):
+            if self.ui.actionActivateComputer.isEnabled():
+                self.reset_client_signal.emit()
+            else:
+                self.reset_server_signal.emit()
+
+    def activate_robot(self):
+        self.ui.actionActivateRobot.toggle()
+
+    def on_activate_robot(self, start):
         _translate = QtCore.QCoreApplication.translate
         if start:
-            self.ui.actionStartStop.setStatusTip(_translate("MainWindow", "Остановить передачу данных"))
-            self.ui.actionStartStop.setText(_translate("MainWindow", "Остановка"))
-            self.ui.actionStartStop.setIconText(_translate("MainWindow", "Остановка"))
+            self.ui.actionActivateRobot.setStatusTip(_translate("MainWindow", "Отключить робота"))
+            self.ui.actionActivateRobot.setText(_translate("MainWindow", "Отключить робота"))
+            self.ui.actionActivateRobot.setIconText(_translate("MainWindow", "Отключить робота"))
+            self.ui.actionActivateComputer.setEnabled(False)
             self.start_server_signal.emit()
         else:
-            self.ui.actionStartStop.setStatusTip(_translate("MainWindow", "Запустить сервер для передачи данных"))
-            self.ui.actionStartStop.setText(_translate("MainWindow", "Запуск"))
-            self.ui.actionStartStop.setIconText(_translate("MainWindow", "Запуск"))
+            self.ui.actionActivateRobot.setStatusTip(_translate("MainWindow", "Активировать робота"))
+            self.ui.actionActivateRobot.setText(_translate("MainWindow", "Активировать робота"))
+            self.ui.actionActivateRobot.setIconText(_translate("MainWindow", "Активация робота"))
+            self.ui.actionActivateComputer.setEnabled(True)
             self.stop_server_signal.emit()
+
+    def activate_computer(self):
+        self.ui.actionActivateComputer.toggle()
+
+    def on_activate_computer(self, start):
+        _translate = QtCore.QCoreApplication.translate
+        if start:
+            self.ui.actionActivateComputer.setStatusTip(_translate("MainWindow", "Отключить компьютер"))
+            self.ui.actionActivateComputer.setText(_translate("MainWindow", "Отключить компьютер"))
+            self.ui.actionActivateComputer.setIconText(_translate("MainWindow", "Отключить компьютер"))
+            self.ui.actionActivateRobot.setEnabled(False)
+            self.start_client_signal.emit()
+        else:
+            self.ui.actionActivateComputer.setStatusTip(_translate("MainWindow", "Активировать компьютер"))
+            self.ui.actionActivateComputer.setText(_translate("MainWindow", "Активировать компьютер"))
+            self.ui.actionActivateComputer.setIconText(_translate("MainWindow", "Активация компьютера"))
+            self.ui.actionActivateRobot.setEnabled(True)
+            self.stop_client_signal.emit()
