@@ -54,8 +54,8 @@ class QRobotApplication(QApplication):
             _video_port = self.config["network"]["video_port"]
             _data_port = self.config["network"]["data_port"]
             _host = self.config["network"]["host"]
-            self.video_socket = socket.socket()
-            self.video_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+
+            self.video_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.video_socket.bind((_host, int(_video_port)))
             self.video_socket.listen(1)
             self.log_signal.emit(f"Ожидается подключение к {_host}:{_video_port} для передачи видео", LogMessageType.STATUS)
@@ -68,8 +68,7 @@ class QRobotApplication(QApplication):
             #self.video_thread.started.connect(self.camera.run)
             #self.video_thread.start()
 
-            self.data_socket = socket.socket()
-            self.data_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
+            self.data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.data_socket.bind((_host, int(_data_port)))
             self.data_socket.listen(1)
             self.log_signal.emit(f"Ожидается подключение к {_host}:{_data_port} для передачи данных", LogMessageType.STATUS)
