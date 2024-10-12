@@ -13,6 +13,8 @@ import toml
 import sys
 import cv2
 
+from server import QRobotServer
+
 
 class QRobotApplication(QApplication):
     log_signal = pyqtSignal(object, object)
@@ -22,8 +24,15 @@ class QRobotApplication(QApplication):
         super().__init__(argv)
 
     def start(self, window):
+        # Главное окно
         self.window = window
+        self.log_signal.connect(self.window.on_log)
+        self.log_signal.emit(f"Начало работы на {platform.uname().system}", LogMessageType.STATUS)
+        self.log_signal.emit(f"Версия OpenCV: {cv2.__version__}", LogMessageType.STATUS)
+
+        # Робот
         self.robot = QRobot()
+        self.robot.show_image_signal.connect(self.window.on_show_image)
 
         # Камера
         self.camera_thread = QThread()
@@ -35,67 +44,70 @@ class QRobotApplication(QApplication):
         self.camera_thread.started.connect(self.camera.run)
         self.camera_thread.start()
 
-        # Робот
-        self.robot.show_image_signal.connect(self.window.on_show_image)
+        # Сервер
+        self.server_thread = QThread()
+        self.server = QRobotServer()
+        self.server.moveToThread(self.server_thread)
+        self.server.log_signal.connect(self.window.on_log)
+        self.server.stop_signal.connect(self.stop_server)
+        self.server_thread.started.connect(self.server.start)
+        self.window.start_server_signal.connect(self.start_server)
+        self.window.stop_server_signal.connect(self.stop_server)
+        self.window.reset_server_signal.connect(self.reset_server)
 
-        self.log_signal.connect(self.window.on_log)
-        self.log_signal.emit(f"Начало работы на {platform.uname().system}", LogMessageType.STATUS)
-        self.log_signal.emit(f"Версия OpenCV: {cv2.__version__}", LogMessageType.STATUS)
+        # Клиент
+        self.client_thread = QThread()
+        self.client = QRobotServer()
+        self.client.moveToThread(self.client_thread)
+        self.client.log_signal.connect(self.window.on_log)
+        self.client.stop_signal.connect(self.stop_client)
+        self.client_thread.started.connect(self.client.start)
+        self.window.start_client_signal.connect(self.start_client)
+        self.window.stop_client_signal.connect(self.stop_client)
+        self.window.reset_client_signal.connect(self.reset_client)
 
     def stop(self):
-        self.camera.stop()
-        self.camera_thread.quit()
-        self.camera_thread.wait()
+        self.stop_camera()
         self.stop_server()
+        self.stop_client()
+
+    def stop_camera(self):
+        if self.camera_thread.isRunning():
+            self.camera.stop()
+            self.camera_thread.quit()
+            self.camera_thread.wait()
 
     def start_server(self):
-        with open('config.toml', 'r') as f:
-            self.config = toml.load(f)
-            _video_port = self.config["network"]["video_port"]
-            _data_port = self.config["network"]["data_port"]
-            _host = self.config["network"]["host"]
-
-            self.video_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.video_socket.bind((_host, int(_video_port)))
-            self.video_socket.listen(1)
-            self.log_signal.emit(f"Ожидается подключение к {_host}:{_video_port} для передачи видео", LogMessageType.STATUS)
-
-            #self.video_thread = QThread()
-            #self.camera = Camera()
-            #self.camera.moveToThread(self.video_thread)
-            #self.camera.frame_captured_signal.connect(self.robot.process_image)
-            #self.camera.log_signal.connect(self.window.log_signal)
-            #self.video_thread.started.connect(self.camera.run)
-            #self.video_thread.start()
-
-            self.data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.data_socket.bind((_host, int(_data_port)))
-            self.data_socket.listen(1)
-            self.log_signal.emit(f"Ожидается подключение к {_host}:{_data_port} для передачи данных", LogMessageType.STATUS)
+        if not self.server_thread.isRunning():
+            self.server_thread.start()
 
     def stop_server(self):
-        try:
-            self.video_connection.close()
-            self.video_thread.quit()
-            self.video_thread.wait()
-
-            self.data_connection.close()
-            self.data_thread.quit()
-            self.data_thread.wait()
-        except Exception as e:
-            self.log_signal.emit("Нет активных подключений", LogMessageType.STATUS)
+        if self.server_thread.isRunning():
+            self.server.stop()
+            self.server_thread.quit()
+            self.server_thread.wait()
+            if self.window.ui.actionActivateRobot.isChecked(): # При старте произошла ошибка
+                self.window.activate_robot()
 
     def reset_server(self):
-        self.stop_server()
-        self.start_server()
+        if self.server_thread.isRunning():
+            self.server.reset()
 
+    def start_client(self):
+        if not self.client_thread.isRunning():
+            self.client_thread.start()
 
-        #self.send_video = Thread(target=self.send_video)
-        #self.read_data = Thread(target=self.read_data)
-        #self.send_video.start()
-        #self.read_data.start()
+    def stop_client(self):
+        if self.client_thread.isRunning():
+            self.client.stop()
+            self.client_thread.quit()
+            self.client_thread.wait()
+            if self.window.ui.actionActivateComputer.isChecked(): # При старте произошла ошибка
+                self.window.activate_computer()
 
-
+    def reset_client(self):
+        if self.client_thread.isRunning():
+            self.client.reset()
 
 if __name__ == "__main__":
     app = QRobotApplication(sys.argv)

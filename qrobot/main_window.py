@@ -10,7 +10,6 @@ import toml
 
 
 class QRobotMainWindow(QMainWindow):
-    log_signal = pyqtSignal(object, object)
     start_server_signal = pyqtSignal()
     stop_server_signal = pyqtSignal()
     reset_server_signal = pyqtSignal()
@@ -22,11 +21,6 @@ class QRobotMainWindow(QMainWindow):
         super().__init__()
 
         self.app = app
-
-        self.log_signal.connect(self.on_log)
-        self.start_server_signal.connect(self.app.start_server)
-        self.stop_server_signal.connect(self.app.stop_server)
-        self.reset_server_signal.connect(self.app.reset_server)
 
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
@@ -65,14 +59,14 @@ class QRobotMainWindow(QMainWindow):
 
     def on_log(self, message, type=LogMessageType.STATUS):
         fmt = QTextFormat()
-        self.logger.setTextColor(QColor(0, 0, 0))
         self.logger.moveCursor(QTextCursor.MoveOperation.End)
-        self.logger.append(strftime("%H:%M:%S : ", localtime()))
         if type == LogMessageType.ERROR:
             self.logger.setTextColor(QColor(255, 0, 0))
         elif type == LogMessageType.WARNING:
             self.logger.setTextColor(QColor(255, 255, 0))
-        self.logger.moveCursor(QTextCursor.MoveOperation.End)
+        else:
+            self.logger.setTextColor(QColor(0, 0, 0))
+        self.logger.append(strftime("%H:%M:%S : ", localtime()))
         self.logger.insertPlainText(message)
 
     def on_config(self):
