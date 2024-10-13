@@ -15,6 +15,7 @@ class QRobotVideoConnection(QThread):
     disconnected_signal = pyqtSignal(object)
     tcp_server = None
     tcp_client = None
+    connection = None
 
     def __init__(self, logger, host, port):
         super().__init__()
@@ -110,23 +111,29 @@ class QRobotVideoConnection(QThread):
                 self.connection.write(_buffer)
                 self.connection.waitForBytesWritten()
         except Exception as e:
-            self.log_signal.emit(f"Ошибка {type(e)}: {e}", LogMessageType.ERROR)
+            self.log_signal.emit(f"send_frame >> Ошибка {type(e)}: {e}", LogMessageType.ERROR)
 
     @pyqtSlot()
     def receive_frame(self):
         try:
             if self.tcp_client.state() == QTcpSocket.SocketState.ConnectedState:
-                if self.bytes_expected == 0:
-                    self.bytes_expected = int(self.tcp_client.readLine())
+                if self.bytes_expected == 0 and self.tcp_client.bytesAvailable() >= self.bytes_expected:
+                    chunk = self.tcp_client.readLine()
+                    self.bytes_expected = int(chunk)
                     self.buffer = QByteArray()
 
-                elif self.bytes_expected > 0:
-                    chunk = self.tcp_client.readAll()
-                    self.bytes_expected -= chunk.size()
+                elif self.bytes_expected > 0 and self.tcp_client.bytesAvailable() > 0:
+                    chunk = self.tcp_client.read(min(self.bytes_expected, self.tcp_client.bytesAvailable()))
+                    self.bytes_expected -= len(chunk)
                     self.buffer.append(chunk)
                     if self.bytes_expected == 0:
                         _frame = pickle.loads(self.buffer)
                         self.frame_received_signal.emit(_frame)
+
+                        if self.tcp_client.bytesAvailable() > 0:
+                            self.log_signal.emit(
+                                f"Ещё остались данные {self.tcp_client.bytesAvailable()=}",
+                                LogMessageType.ERROR)
         except Exception as e:
             self.log_signal.emit(f"Ошибка {type(e)}: {e}", LogMessageType.ERROR)
 
