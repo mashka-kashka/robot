@@ -1,14 +1,18 @@
+import sys
 from socket import socket
 
-from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QThread
+from PyQt6 import QtWidgets
+from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QThread, QByteArray, QBuffer
 from PyQt6.QtNetwork import QTcpServer, QHostAddress, QTcpSocket
-from wheel.macosx_libfile import swap32
-
 from log_message_type import LogMessageType
+import pickle
 
 class QRobotVideoConnection(QThread):
     log_signal = pyqtSignal(object, object)
     stop_signal = pyqtSignal()
+    frame_received_signal = pyqtSignal(object)
+    connected_signal = pyqtSignal(object)
+    disconnected_signal = pyqtSignal(object)
     tcp_server = None
     tcp_client = None
 
@@ -18,6 +22,11 @@ class QRobotVideoConnection(QThread):
         self.log_signal.connect(self.logger.log)
         self.host = host
         self.port = int(port)
+
+        app = QtWidgets.QApplication.instance()
+        self.frame_received_signal.connect(app.on_frame_received)
+        self.connected_signal.connect(app.on_connected)
+        self.disconnected_signal.connect(app.on_disconnected)
 
     @pyqtSlot()
     def bind(self):
@@ -38,7 +47,7 @@ class QRobotVideoConnection(QThread):
             self.log_signal.emit(f"Попытка подключения к серверу {self.host}:{self.port} для передачи видео",
                                  LogMessageType.STATUS)
             self.tcp_client = QTcpSocket()
-            self.tcp_client.disconnected.connect(self.on_client_dissconnected)
+            self.tcp_client.disconnected.connect(self.on_client_disconnected)
             self.tcp_client.connected.connect(self.on_connected_to_host)
             self.tcp_client.connectToHost(QHostAddress(self.host), self.port)
             if not self.tcp_client.waitForConnected(1000):
@@ -71,19 +80,53 @@ class QRobotVideoConnection(QThread):
     def on_client_connected(self):
         while self.tcp_server.hasPendingConnections():
             self.connection = self.tcp_server.nextPendingConnection()
-            self.connection.disconnected.connect(self.on_client_dissconnected)
-
+            self.connection.disconnected.connect(self.on_client_disconnected)
             self.log_signal.emit(f"Подключился клиент {self.connection.peerAddress().toString()} для передачи видео",
                              LogMessageType.STATUS)
+            self.connected_signal.emit(self)
 
     @pyqtSlot()
     def on_connected_to_host(self):
         self.log_signal.emit(f"Успешное подключение к серверу для передачи видео",
                              LogMessageType.STATUS)
+        self.connected_signal.emit(self)
+        self.tcp_client.readyRead.connect(self.receive_frame)
+        self.bytes_expected = 0
+
     @pyqtSlot()
-    def on_client_dissconnected(self):
+    def on_client_disconnected(self):
         self.log_signal.emit(f"Клиент для передачи видео отключился",
                          LogMessageType.WARNING)
+        self.disconnected_signal.emit(self)
 
-       # if self.tcp_client: # Активация кнопки для повторного подключения
-       #     self.stop_signal.emit()
+    @pyqtSlot(object)
+    def send_frame(self, frame):
+        try:
+            if self.connection.state() == QTcpSocket.SocketState.ConnectedState:
+                _buffer = pickle.dumps(frame)
+                _size = QByteArray()
+                _size.setNum(len(_buffer))
+                self.connection.write(_size + b'\n')
+                self.connection.write(_buffer)
+                self.connection.waitForBytesWritten()
+        except Exception as e:
+            self.log_signal.emit(f"Ошибка {type(e)}: {e}", LogMessageType.ERROR)
+
+    @pyqtSlot()
+    def receive_frame(self):
+        try:
+            if self.tcp_client.state() == QTcpSocket.SocketState.ConnectedState:
+                if self.bytes_expected == 0:
+                    self.bytes_expected = int(self.tcp_client.readLine())
+                    self.buffer = QByteArray()
+
+                elif self.bytes_expected > 0:
+                    chunk = self.tcp_client.readAll()
+                    self.bytes_expected -= chunk.size()
+                    self.buffer.append(chunk)
+                    if self.bytes_expected == 0:
+                        _frame = pickle.loads(self.buffer)
+                        self.frame_received_signal.emit(_frame)
+        except Exception as e:
+            self.log_signal.emit(f"Ошибка {type(e)}: {e}", LogMessageType.ERROR)
+

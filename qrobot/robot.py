@@ -1,4 +1,4 @@
-from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 import mediapipe as mp
 from mediapipe import solutions
 from mediapipe.framework.formats import landmark_pb2
@@ -8,8 +8,6 @@ import numpy as np
 
 
 class QRobot(QObject):
-    show_image_signal = pyqtSignal(object)
-
     def __init__(self):
         super().__init__()
         _base_options = python.BaseOptions(model_asset_path='models/face_landmarker.task')
@@ -19,14 +17,13 @@ class QRobot(QObject):
                                               num_faces=3)
         self.faceDetector = vision.FaceLandmarker.create_from_options(_options)
 
-    # Обработка изображения
-    def process_image(self, image):
+    # Обработка кадра
+    def process_frame(self, image):
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image
                             )
         detection_result = self.faceDetector.detect(mp_image)
         annotated_image = self.draw_landmarks_on_image(mp_image.numpy_view(), detection_result)
-
-        self.show_image_signal.emit(annotated_image)
+        return annotated_image
 
     def draw_landmarks_on_image(self, rgb_image, detection_result):
         face_landmarks_list = detection_result.face_landmarks

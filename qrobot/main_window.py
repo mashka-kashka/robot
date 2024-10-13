@@ -38,7 +38,7 @@ class QRobotMainWindow(QMainWindow):
         self.graphicsView.setScene(self.scene)
         self.scenePixmapItem = None
 
-    def on_show_image(self, image):
+    def show_image(self, image):
         _image = QImage(
             image.data,
             image.shape[1],
@@ -56,6 +56,10 @@ class QRobotMainWindow(QMainWindow):
             self.scenePixmapItem.setPixmap(_pixmap)
 
         self.graphicsView.fitInView(self.scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+        self.graphicsView.show()
+
+    def hide_image(self):
+        self.graphicsView.hide()
 
     def log(self, message, type=LogMessageType.STATUS):
         fmt = QTextFormat()

@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-from PyQt6.QtCore import QThread, Qt, pyqtSignal
+from PyQt6.QtCore import QThread, Qt, pyqtSignal, pyqtSlot
 from PyQt6.QtWidgets import QApplication
 from log_message_type import LogMessageType
 from main_window import QRobotMainWindow
@@ -17,7 +17,8 @@ import cv2
 
 class QRobotApplication(QApplication):
     log_signal = pyqtSignal(object, object)
-    show_image_signal = pyqtSignal(object)
+    send_frame_signal = pyqtSignal(object)
+    connection = None
 
     def __init__(self, argv):
         super().__init__(argv)
@@ -31,7 +32,6 @@ class QRobotApplication(QApplication):
 
         # Робот
         self.robot = QRobot()
-        self.robot.show_image_signal.connect(self.window.on_show_image)
 
         # Камера
         self.camera_thread = QThread()
@@ -39,7 +39,7 @@ class QRobotApplication(QApplication):
         self.camera.moveToThread(self.camera_thread)
         self.camera.activate_robot_signal.connect(self.window.activate_robot)
         self.camera.activate_computer_signal.connect(self.window.activate_computer)
-        self.camera.frame_captured_signal.connect(self.robot.process_image)
+        self.camera.frame_captured_signal.connect(self.on_frame_captured)
         self.camera_thread.started.connect(self.camera.run)
         self.camera_thread.start()
 
@@ -89,6 +89,33 @@ class QRobotApplication(QApplication):
 
     def reset_client(self):
         self.client.reset()
+
+    @pyqtSlot(object)
+    def on_frame_captured(self, frame):
+        if self.connection:
+            self.send_frame_signal.emit(frame)
+        else:
+            self.on_frame_received(frame) # Обработка своими силами
+
+    @pyqtSlot(object)
+    def on_frame_received(self, frame):
+        processed_frame = self.robot.process_frame(frame)
+        self.window.show_image(processed_frame)
+
+    @pyqtSlot(object)
+    def on_connected(self, connection):
+        self.connection = connection
+        connection.frame_received_signal.connect(self.on_frame_received)
+        self.send_frame_signal.connect(connection.send_frame)
+        self.window.hide_image()
+        self.log_signal.emit(f"Вычисления переданы на внешний компьютер", LogMessageType.WARNING)
+
+    @pyqtSlot(object)
+    def on_disconnected(self, connection):
+        self.connection = None
+        connection.frame_received_signal.disconnect(self.on_frame_received)
+        self.send_frame_signal.disconnect(connection.send_frame)
+        self.log_signal.emit(f"Вычисления выполняются на собственном процессоре", LogMessageType.WARNING)
 
 if __name__ == "__main__":
     app = QRobotApplication(sys.argv)
