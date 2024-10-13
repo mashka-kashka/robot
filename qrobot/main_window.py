@@ -2,7 +2,7 @@ from time import time, localtime, strftime
 from PyQt6 import QtCore
 from PyQt6.QtGui import QTextFormat, QColor, QTextCursor, QPixmap, QImage, QIcon
 from PyQt6.QtWidgets import QMainWindow, QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, QGridLayout
-from PyQt6.QtCore import pyqtSignal, Qt
+from PyQt6.QtCore import pyqtSignal, Qt, pyqtSlot
 from main_window_ui import Ui_MainWindow
 from log_message_type import LogMessageType
 from net_config_dialog import NetConfigDialog
@@ -57,13 +57,13 @@ class QRobotMainWindow(QMainWindow):
 
         self.graphicsView.fitInView(self.scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
 
-    def on_log(self, message, type=LogMessageType.STATUS):
+    def log(self, message, type=LogMessageType.STATUS):
         fmt = QTextFormat()
         self.logger.moveCursor(QTextCursor.MoveOperation.End)
         if type == LogMessageType.ERROR:
             self.logger.setTextColor(QColor(255, 0, 0))
         elif type == LogMessageType.WARNING:
-            self.logger.setTextColor(QColor(255, 255, 0))
+            self.logger.setTextColor(QColor(0, 0, 255))
         else:
             self.logger.setTextColor(QColor(0, 0, 0))
         self.logger.append(strftime("%H:%M:%S : ", localtime()))
@@ -88,9 +88,13 @@ class QRobotMainWindow(QMainWindow):
             else:
                 self.reset_server_signal.emit()
 
-    def activate_robot(self):
+    @pyqtSlot(bool)
+    def activate_robot(self, block_signals):
+        self.ui.actionActivateRobot.blockSignals(block_signals)
         self.ui.actionActivateRobot.toggle()
+        self.ui.actionActivateRobot.blockSignals(not block_signals)
 
+    @pyqtSlot(bool)
     def on_activate_robot(self, start):
         _translate = QtCore.QCoreApplication.translate
         if start:
@@ -106,9 +110,13 @@ class QRobotMainWindow(QMainWindow):
             self.ui.actionActivateComputer.setEnabled(True)
             self.stop_server_signal.emit()
 
-    def activate_computer(self):
+    @pyqtSlot(bool)
+    def activate_computer(self, block_signals):
+        #self.ui.actionActivateComputer.blockSignals(block_signals)
         self.ui.actionActivateComputer.toggle()
+        #self.ui.actionActivateComputer.blockSignals(not block_signals)
 
+    @pyqtSlot(bool)
     def on_activate_computer(self, start):
         _translate = QtCore.QCoreApplication.translate
         if start:

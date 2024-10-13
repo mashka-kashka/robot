@@ -1,12 +1,19 @@
-from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QObject, pyqtSignal, QThread, pyqtSlot
 from log_message_type import LogMessageType
-import socket
 import toml
+
+from video_connection import QRobotVideoConnection
 
 
 class QRobotClient(QObject):
     log_signal = pyqtSignal(object, object)
     stop_signal = pyqtSignal()
+    running = False
+
+    def __init__(self, logger):
+        super().__init__()
+        self.logger = logger
+        self.log_signal.connect(self.logger.log)
 
     def start(self):
         if self.running:
@@ -15,25 +22,14 @@ class QRobotClient(QObject):
 
         with open('config.toml', 'r') as f:
             self.config = toml.load(f)
-            _video_port = self.config["network"]["video_port"]
-            _data_port = self.config["network"]["data_port"]
+            _video_port = int(self.config["network"]["video_port"])
+            _data_port = int(self.config["network"]["data_port"])
             _host = self.config["network"]["host"]
 
-            try:
-                self.video_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.video_socket.bind((_host, int(_video_port)))
-                self.video_socket.listen(1)
-                self.log_signal.emit(f"Попытка подключения к серверу {_host}:{_video_port} для передачи видео",
-                                     LogMessageType.STATUS)
-
-                self.data_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                self.data_socket.bind((_host, int(_data_port)))
-                self.data_socket.listen(1)
-                self.log_signal.emit(f"Попытка подключения к серверу {_host}:{_data_port} для передачи данных",
-                                     LogMessageType.STATUS)
-            except Exception as e:
-                self.log_signal.emit(f"Ошибка {type(e)}: {e}", LogMessageType.ERROR)
-                self.stop_signal.emit()
+            self.video_connection = QRobotVideoConnection(self.logger, _host, _video_port)
+            self.video_connection.stop_signal.connect(self.on_stop)
+            self.video_connection.started.connect(self.video_connection.connect_to_host)
+            self.video_connection.start()
 
     def stop(self):
         if not self.running:
@@ -41,10 +37,14 @@ class QRobotClient(QObject):
         self.running = False
         try:
             self.video_connection.close()
-            self.data_connection.close()
         except Exception as e:
-            pass
+            self.log_signal.emit(f"Ошибка {type(e)}: {e}", LogMessageType.ERROR)
 
     def reset(self):
         self.stop()
         self.start()
+
+    @pyqtSlot()
+    def on_stop(self):
+        self.stop_signal.emit()
+

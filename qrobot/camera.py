@@ -6,8 +6,8 @@ import platform
 import toml
 
 class Camera(QObject):
-    activate_robot_signal = pyqtSignal()
-    activate_computer_signal = pyqtSignal()
+    activate_robot_signal = pyqtSignal(bool)
+    activate_computer_signal = pyqtSignal(bool)
     frame_captured_signal = pyqtSignal(object)
 
     def __init__(self, camera_index=0):
@@ -25,7 +25,7 @@ class Camera(QObject):
             picam2.configure(picam2.create_preview_configuration(
                 main={"format": 'RGB888', "size": (self.config["camera"]["width"], self.config["camera"]["height"])}))
             picam2.start() # запускаем камеру
-            self.activate_robot_signal.emit()
+            self.activate_robot_signal.emit(False)
             while self.running:
                 frame = picam2.capture_array()
                 self.frame_captured_signal.emit(frame)
@@ -44,7 +44,7 @@ class Camera(QObject):
                         break
             else:
                 self.running = False
-                self.activate_computer_signal.emit()
+                self.activate_computer_signal.emit(False)
             cap.release()
 
     def stop(self):
