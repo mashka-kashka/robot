@@ -1,4 +1,4 @@
-# Form implementation generated from reading ui file '.\net_config_dialog.ui'
+# Form implementation generated from reading ui file 'net_config_dialog.ui'
 #
 # Created by: PyQt6 UI code generator 6.4.2
 #
@@ -12,13 +12,14 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 class Ui_NetConfigDialog(object):
     def setupUi(self, NetConfigDialog):
         NetConfigDialog.setObjectName("NetConfigDialog")
-        NetConfigDialog.resize(400, 98)
+        NetConfigDialog.resize(400, 129)
         NetConfigDialog.setModal(True)
         self.verticalLayout = QtWidgets.QVBoxLayout(NetConfigDialog)
         self.verticalLayout.setObjectName("verticalLayout")
         self.formLayout = QtWidgets.QFormLayout()
         self.formLayout.setObjectName("formLayout")
         self.cbAddress = QtWidgets.QComboBox(parent=NetConfigDialog)
+        self.cbAddress.setEditable(True)
         self.cbAddress.setObjectName("cbAddress")
         self.formLayout.setWidget(0, QtWidgets.QFormLayout.ItemRole.FieldRole, self.cbAddress)
         self.label = QtWidgets.QLabel(parent=NetConfigDialog)

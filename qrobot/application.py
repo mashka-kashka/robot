@@ -95,7 +95,7 @@ class QRobotApplication(QApplication):
         if self.connection:
             self.send_frame_signal.emit(frame)
         else:
-            self.on_frame_received(frame) # Обработка своими силами
+            self.window.show_image(frame)
 
     @pyqtSlot(object)
     def on_frame_received(self, frame):
@@ -115,7 +115,7 @@ class QRobotApplication(QApplication):
         self.connection = None
         connection.frame_received_signal.disconnect(self.on_frame_received)
         self.send_frame_signal.disconnect(connection.send_frame)
-        self.log_signal.emit(f"Вычисления выполняются на собственном процессоре", LogMessageType.WARNING)
+        #self.log_signal.emit(f"Вычисления выполняются на собственном процессоре", LogMessageType.WARNING)
 
 if __name__ == "__main__":
     app = QRobotApplication(sys.argv)

@@ -12,7 +12,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(1104, 836)
+        MainWindow.resize(829, 585)
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap("icons/robot.png"), QtGui.QIcon.Mode.Normal, QtGui.QIcon.State.Off)
         MainWindow.setWindowIcon(icon)
@@ -32,7 +32,7 @@ class Ui_MainWindow(object):
         self.splitter.setOrientation(QtCore.Qt.Orientation.Vertical)
         self.splitter.setObjectName("splitter")
         self.tabWidget = QtWidgets.QTabWidget(parent=self.splitter)
-        self.tabWidget.setMinimumSize(QtCore.QSize(0, 480))
+        self.tabWidget.setMinimumSize(QtCore.QSize(0, 320))
         self.tabWidget.setObjectName("tabWidget")
         self.tabCamera = QtWidgets.QWidget()
         self.tabCamera.setObjectName("tabCamera")

@@ -19,7 +19,7 @@ class Camera(QObject):
 
     def run(self):
         self.running = True
-        if platform.uname().system == "raspberrypi":
+        if platform.uname().node == "raspberrypi":
             from picamera2 import Picamera2
             picam2 = Picamera2()
             picam2.configure(picam2.create_preview_configuration(
