@@ -7,7 +7,7 @@ from server import QRobotServer
 from client import QRobotClient
 from camera import Camera
 from robot import QRobot
-
+import tensorflow as tf
 import platform
 import socket
 import toml
@@ -35,6 +35,9 @@ class QRobotApplication(QApplication):
             self.log_signal.emit(f"Активировано ускорение CUDA", LogMessageType.STATUS)
         else:
             self.log_signal.emit(f"Ускорение CUDA отсутствует", LogMessageType.WARNING)
+
+        self.log_signal.emit(f"Tensorflow: {tf.__version__}", LogMessageType.STATUS)
+        self.log_signal.emit(f"GPU: {tf.config.list_physical_devices('GPU')}", LogMessageType.STATUS)
 
         # Робот
         self.robot = QRobot()
