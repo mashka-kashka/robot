@@ -6,4 +6,4 @@ sleep = 0.033
 [network]
 video_port = "1580"
 data_port = "2024"
-host = "192.168.1.7"
+host = "192.168.1.5"

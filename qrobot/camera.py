@@ -1,4 +1,4 @@
-from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 from log_message_type import LogMessageType
 import time
 import cv2
@@ -9,43 +9,50 @@ class Camera(QObject):
     activate_robot_signal = pyqtSignal(bool)
     activate_computer_signal = pyqtSignal(bool)
     frame_captured_signal = pyqtSignal(object)
+    picam2 = None
+    cap = None
+    running = False
 
     def __init__(self, camera_index=0):
         super().__init__()
         with open('config.toml', 'r') as f:
             self.config = toml.load(f)
         self.camera_index = camera_index
-        self.running = False
 
-    def run(self):
+    @pyqtSlot()
+    def start(self):
         self.running = True
         if platform.uname().node == "raspberrypi":
             from picamera2 import Picamera2
-            picam2 = Picamera2()
-            picam2.configure(picam2.create_preview_configuration(
+            self.picam2 = Picamera2()
+            self.picam2.configure(self.picam2.create_preview_configuration(
                 main={"format": 'RGB888', "size": (self.config["camera"]["width"], self.config["camera"]["height"])}))
-            picam2.start() # запускаем камеру
+            self.picam2.start() # запускаем камеру
             self.activate_robot_signal.emit(False)
-            while self.running:
-                frame = picam2.capture_array()
-                self.frame_captured_signal.emit(frame)
-                time.sleep(self.config["camera"]["sleep"])
-            picam2.stop()
+            self.get_frame()
         else:
-            cap = cv2.VideoCapture(self.camera_index)
-            if cap.isOpened():
-                while self.running:
-                    ret, frame = cap.read()
-                    if ret:
-                        self.frame_captured_signal.emit(frame)
-                        time.sleep(self.config["camera"]["sleep"])
-                    else:
-                        self.running = False
-                        break
+            self.cap = cv2.VideoCapture(self.camera_index)
+            if self.cap.isOpened():
+                self.get_frame()
             else:
                 self.running = False
                 self.activate_computer_signal.emit(False)
-            cap.release()
 
     def stop(self):
         self.running = False
+        if self.picam2:
+            self.picam2.stop()
+        if self.cap:
+            self.cap.release()
+
+    @pyqtSlot()
+    def get_frame(self):
+        if not self.running:
+            return
+        if self.picam2:
+            _frame = self.picam2.capture_array()
+            self.frame_captured_signal.emit(_frame)
+        if self.cap:
+            ret, frame = self.cap.read()
+            if ret:
+                self.frame_captured_signal.emit(frame)

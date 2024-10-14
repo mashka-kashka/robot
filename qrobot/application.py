@@ -18,6 +18,8 @@ import cv2
 class QRobotApplication(QApplication):
     log_signal = pyqtSignal(object, object)
     send_frame_signal = pyqtSignal(object)
+    show_frame_signal = pyqtSignal(object)
+    get_frame_signal = pyqtSignal()
     connection = None
 
     def __init__(self, argv):
@@ -29,6 +31,10 @@ class QRobotApplication(QApplication):
         self.log_signal.connect(self.window.log)
         self.log_signal.emit(f"Начало работы на {platform.uname().system}", LogMessageType.STATUS)
         self.log_signal.emit(f"Версия OpenCV: {cv2.__version__}", LogMessageType.STATUS)
+        if cv2.cuda.getCudaEnabledDeviceCount() > 0:
+            self.log_signal.emit(f"Активировано ускорение CUDA", LogMessageType.STATUS)
+        else:
+            self.log_signal.emit(f"Ускорение CUDA отсутствует", LogMessageType.WARNING)
 
         # Робот
         self.robot = QRobot()
@@ -40,7 +46,8 @@ class QRobotApplication(QApplication):
         self.camera.activate_robot_signal.connect(self.window.activate_robot)
         self.camera.activate_computer_signal.connect(self.window.activate_computer)
         self.camera.frame_captured_signal.connect(self.on_frame_captured)
-        self.camera_thread.started.connect(self.camera.run)
+        self.get_frame_signal.connect(self.camera.get_frame)
+        self.camera_thread.started.connect(self.camera.start)
         self.camera_thread.start()
 
         # Сервер
@@ -94,13 +101,13 @@ class QRobotApplication(QApplication):
     def on_frame_captured(self, frame):
         if self.connection:
             self.send_frame_signal.emit(frame)
-        else:
-            self.window.show_image(frame)
+        self.show_frame_signal.emit(frame)
+        self.get_frame_signal.emit()
 
     @pyqtSlot(object)
     def on_frame_received(self, frame):
-        processed_frame = self.robot.process_frame(frame)
-        self.window.show_image(processed_frame)
+        _processed_frame = self.robot.process_frame(frame)
+        self.show_frame_signal.emit(_processed_frame)
 
     @pyqtSlot(object)
     def on_connected(self, connection):
@@ -115,7 +122,7 @@ class QRobotApplication(QApplication):
         self.connection = None
         connection.frame_received_signal.disconnect(self.on_frame_received)
         self.send_frame_signal.disconnect(connection.send_frame)
-        #self.log_signal.emit(f"Вычисления выполняются на собственном процессоре", LogMessageType.WARNING)
+        self.get_frame_signal.emit()
 
 if __name__ == "__main__":
     app = QRobotApplication(sys.argv)

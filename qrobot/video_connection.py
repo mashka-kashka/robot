@@ -116,24 +116,19 @@ class QRobotVideoConnection(QThread):
     @pyqtSlot()
     def receive_frame(self):
         try:
-            if self.tcp_client.state() == QTcpSocket.SocketState.ConnectedState:
+            while self.tcp_client.bytesAvailable() > 0:
                 if self.bytes_expected == 0 and self.tcp_client.bytesAvailable() >= self.bytes_expected:
                     chunk = self.tcp_client.readLine()
                     self.bytes_expected = int(chunk)
                     self.buffer = QByteArray()
 
-                elif self.bytes_expected > 0 and self.tcp_client.bytesAvailable() > 0:
+                if self.bytes_expected > 0 and self.tcp_client.bytesAvailable() > 0:
                     chunk = self.tcp_client.read(min(self.bytes_expected, self.tcp_client.bytesAvailable()))
                     self.bytes_expected -= len(chunk)
                     self.buffer.append(chunk)
                     if self.bytes_expected == 0:
                         _frame = pickle.loads(self.buffer)
                         self.frame_received_signal.emit(_frame)
-
-                        if self.tcp_client.bytesAvailable() > 0:
-                            self.log_signal.emit(
-                                f"Ещё остались данные {self.tcp_client.bytesAvailable()=}",
-                                LogMessageType.ERROR)
         except Exception as e:
             self.log_signal.emit(f"Ошибка {type(e)}: {e}", LogMessageType.ERROR)
 

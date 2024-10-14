@@ -1,5 +1,5 @@
 from time import time, localtime, strftime
-from PyQt6 import QtCore
+from PyQt6 import QtCore, QtWidgets
 from PyQt6.QtGui import QTextFormat, QColor, QTextCursor, QPixmap, QImage, QIcon
 from PyQt6.QtWidgets import QMainWindow, QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, QGridLayout
 from PyQt6.QtCore import pyqtSignal, Qt, pyqtSlot
@@ -38,11 +38,15 @@ class QRobotMainWindow(QMainWindow):
         self.graphicsView.setScene(self.scene)
         self.scenePixmapItem = None
 
-    def show_image(self, image):
+        app = QtWidgets.QApplication.instance()
+        app.show_frame_signal.connect(self.show_frame)
+
+    @pyqtSlot(object)
+    def show_frame(self, frame):
         _image = QImage(
-            image.data,
-            image.shape[1],
-            image.shape[0],
+            frame.data,
+            frame.shape[1],
+            frame.shape[0],
             QImage.Format.Format_BGR888,
         )
 
