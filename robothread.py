@@ -12,7 +12,7 @@ def _async_raise(tid, exctype):
         raise ValueError("Неверный идентификатор потока")
     elif res != 1:
         ctypes.pythonapi.PyThreadState_SetAsyncExc(tid, None)
-        raise SystemError("PyThreadState_SetAsyncExc failed")
+        raise SystemError("PyThreadState_SetAsyncExc failed_signal")
 
 
 def stop(thread):

@@ -1,9 +1,8 @@
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
-from log_message_type import LogMessageType
-import time
 import cv2
 import platform
 import toml
+
 
 class Camera(QObject):
     activate_robot_signal = pyqtSignal(bool)

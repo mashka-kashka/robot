@@ -1,0 +1,517 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>GesturesWindow</class>
+ <widget class="QMainWindow" name="GesturesWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>864</width>
+    <height>667</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Робот</string>
+  </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>icons/hand.png</normaloff>icons/hand.png</iconset>
+  </property>
+  <property name="toolButtonStyle">
+   <enum>Qt::ToolButtonIconOnly</enum>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QGridLayout" name="gridLayout_2">
+    <item row="0" column="0">
+     <widget class="QSplitter" name="splitter">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>1</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="minimumSize">
+       <size>
+        <width>200</width>
+        <height>300</height>
+       </size>
+      </property>
+      <property name="baseSize">
+       <size>
+        <width>1</width>
+        <height>1</height>
+       </size>
+      </property>
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <widget class="QTabWidget" name="tabWidget">
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>320</height>
+        </size>
+       </property>
+       <property name="currentIndex">
+        <number>0</number>
+       </property>
+       <widget class="QWidget" name="tabGestures">
+        <attribute name="icon">
+         <iconset>
+          <normaloff>../img/hand.png</normaloff>../img/hand.png</iconset>
+        </attribute>
+        <attribute name="title">
+         <string>Жесты</string>
+        </attribute>
+        <layout class="QGridLayout" name="gridLayout">
+         <item row="0" column="0">
+          <layout class="QHBoxLayout" name="horizontalLayout_2">
+           <property name="spacing">
+            <number>3</number>
+           </property>
+           <item>
+            <widget class="QToolButton" name="tb_open">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>Открыть</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normaloff>icons/open-file.png</normaloff>icons/open-file.png</iconset>
+             </property>
+             <property name="toolButtonStyle">
+              <enum>Qt::ToolButtonTextBesideIcon</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="tb_save">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>Сохранить</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normaloff>icons/save.png</normaloff>icons/save.png</iconset>
+             </property>
+             <property name="toolButtonStyle">
+              <enum>Qt::ToolButtonTextBesideIcon</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="tb_add">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>Добавить</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normaloff>../img/plus.png</normaloff>../img/plus.png</iconset>
+             </property>
+             <property name="toolButtonStyle">
+              <enum>Qt::ToolButtonTextBesideIcon</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="toolButton">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>Удалить</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normaloff>../img/minus.png</normaloff>../img/minus.png</iconset>
+             </property>
+             <property name="toolButtonStyle">
+              <enum>Qt::ToolButtonTextBesideIcon</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="tb_edit">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>Редактировать</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normaloff>../img/edit.png</normaloff>../img/edit.png</iconset>
+             </property>
+             <property name="toolButtonStyle">
+              <enum>Qt::ToolButtonTextBesideIcon</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </item>
+         <item row="1" column="0">
+          <widget class="QTableView" name="tv_gestures">
+           <property name="styleSheet">
+            <string notr="true"/>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="tabData">
+        <attribute name="icon">
+         <iconset>
+          <normaloff>icons/pie-chart.png</normaloff>icons/pie-chart.png</iconset>
+        </attribute>
+        <attribute name="title">
+         <string>Данные</string>
+        </attribute>
+        <layout class="QGridLayout" name="gridLayout_4">
+         <item row="2" column="1">
+          <widget class="QTableView" name="tv_data">
+           <attribute name="horizontalHeaderCascadingSectionResizes">
+            <bool>true</bool>
+           </attribute>
+           <attribute name="horizontalHeaderDefaultSectionSize">
+            <number>150</number>
+           </attribute>
+           <attribute name="horizontalHeaderStretchLastSection">
+            <bool>false</bool>
+           </attribute>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QGraphicsView" name="gv_palm"/>
+         </item>
+         <item row="0" column="0" colspan="3">
+          <layout class="QHBoxLayout" name="horizontalLayout_4">
+           <item>
+            <widget class="QToolButton" name="tb_new_data">
+             <property name="text">
+              <string>Создать</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normaloff>icons/star.png</normaloff>icons/star.png</iconset>
+             </property>
+             <property name="toolButtonStyle">
+              <enum>Qt::ToolButtonTextBesideIcon</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="tb_open_data">
+             <property name="text">
+              <string>Открыть</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normaloff>icons/open-file.png</normaloff>icons/open-file.png</iconset>
+             </property>
+             <property name="toolButtonStyle">
+              <enum>Qt::ToolButtonTextBesideIcon</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="tb_save_data">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>Сохранить</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normaloff>icons/save.png</normaloff>icons/save.png</iconset>
+             </property>
+             <property name="toolButtonStyle">
+              <enum>Qt::ToolButtonTextBesideIcon</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="tb_save_data_as">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>Сохранить как ...</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normaloff>icons/save-as.png</normaloff>icons/save-as.png</iconset>
+             </property>
+             <property name="toolButtonStyle">
+              <enum>Qt::ToolButtonTextBesideIcon</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="tb_add_sample">
+             <property name="text">
+              <string>Добавить</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normaloff>icons/download.png</normaloff>icons/download.png</iconset>
+             </property>
+             <property name="toolButtonStyle">
+              <enum>Qt::ToolButtonTextBesideIcon</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QComboBox" name="cb_gestures">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">font: 18pt &quot;Noto Color Emoji&quot;;</string>
+             </property>
+             <property name="currentIndex">
+              <number>-1</number>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>24</width>
+               <height>24</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_2">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="tabLearning">
+        <attribute name="icon">
+         <iconset>
+          <normaloff>icons/learning.png</normaloff>icons/learning.png</iconset>
+        </attribute>
+        <attribute name="title">
+         <string>Обучение</string>
+        </attribute>
+        <layout class="QGridLayout" name="gridLayout_5">
+         <item row="0" column="0">
+          <widget class="QGraphicsView" name="gv_face"/>
+         </item>
+        </layout>
+       </widget>
+      </widget>
+      <widget class="QTextEdit" name="teLog">
+       <property name="frameShape">
+        <enum>QFrame::Panel</enum>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionActivateRobot">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>../qrobot/icons/robot_green.png</normaloff>
+     <normalon>../qrobot/icons/robot_red.png</normalon>../qrobot/icons/robot_green.png</iconset>
+   </property>
+   <property name="text">
+    <string>Активировать робота</string>
+   </property>
+   <property name="iconText">
+    <string>Активация</string>
+   </property>
+   <property name="statusTip">
+    <string>Активировать робота</string>
+   </property>
+  </action>
+  <action name="actionConfig">
+   <property name="icon">
+    <iconset>
+     <normaloff>../qrobot/icons/gear.png</normaloff>../qrobot/icons/gear.png</iconset>
+   </property>
+   <property name="text">
+    <string>Настройки</string>
+   </property>
+   <property name="statusTip">
+    <string>Открыть окно настроек робота</string>
+   </property>
+  </action>
+  <action name="actionExit">
+   <property name="icon">
+    <iconset>
+     <normaloff>../qrobot/icons/quit.png</normaloff>../qrobot/icons/quit.png</iconset>
+   </property>
+   <property name="text">
+    <string>Выход</string>
+   </property>
+   <property name="statusTip">
+    <string>Завершить работу</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+X</string>
+   </property>
+  </action>
+  <action name="actionActivateComputer">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset>
+     <normaloff>../qrobot/icons/chip-green.png</normaloff>
+     <normalon>../qrobot/icons/chip-red.png</normalon>../qrobot/icons/chip-green.png</iconset>
+   </property>
+   <property name="text">
+    <string>Активировать компьютер</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>actionExit</sender>
+   <signal>triggered()</signal>
+   <receiver>GesturesWindow</receiver>
+   <slot>close()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>381</x>
+     <y>248</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>tb_add_sample</sender>
+   <signal>clicked()</signal>
+   <receiver>GesturesWindow</receiver>
+   <slot>on_add_sample()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>201</x>
+     <y>62</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>431</x>
+     <y>333</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>tb_new_data</sender>
+   <signal>clicked()</signal>
+   <receiver>GesturesWindow</receiver>
+   <slot>on_new_data()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>62</x>
+     <y>62</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>431</x>
+     <y>333</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>tb_open_data</sender>
+   <signal>clicked()</signal>
+   <receiver>GesturesWindow</receiver>
+   <slot>on_open_data()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>154</x>
+     <y>62</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>431</x>
+     <y>333</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>tb_save_data</sender>
+   <signal>clicked()</signal>
+   <receiver>GesturesWindow</receiver>
+   <slot>on_save_data()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>254</x>
+     <y>62</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>431</x>
+     <y>333</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>tb_save_data_as</sender>
+   <signal>clicked()</signal>
+   <receiver>GesturesWindow</receiver>
+   <slot>on_save_data_as()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>377</x>
+     <y>62</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>431</x>
+     <y>333</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>on_add_sample()</slot>
+  <slot>on_new_data()</slot>
+  <slot>on_open_data()</slot>
+  <slot>on_save_data()</slot>
+  <slot>on_save_data_as()</slot>
+ </slots>
+</ui>

@@ -1,12 +1,12 @@
 import numpy
-from PyQt6.QtCore import pyqtSlot, QThread, pyqtSignal
-from PyQt6.QtGui import QColor
+from PyQt6.QtCore import pyqtSlot, QThread, pyqtSignal, QPoint
+from PyQt6.QtGui import QColor, QImage, QPainter, QFont
 from PyQt6.QtWidgets import QApplication
+from google.protobuf.json_format import MessageToDict
 from gestures.gestures_window import GesturesWindow
 from gestures.robocamera import RoboCamera
 from mediapipe.python.solutions import drawing_utils as mp_drawing
 from mediapipe.python.solutions import hands as mp_hand_detector
-import numpy as np
 import toml
 import sys
 
@@ -15,6 +15,8 @@ class GesturesApp(QApplication):
     get_next_frame = pyqtSignal()
     connection = None
     current_frame = None
+    label_font = QFont("Times", 20)
+    hand_results = None
 
     def __init__(self, argv):
         super().__init__(argv)
@@ -25,7 +27,7 @@ class GesturesApp(QApplication):
 
         # Модуль распознавания ладони на изображении
         self.hand_detector = hand_detector = mp_hand_detector.Hands(
-            static_image_mode=True,
+            static_image_mode=False,
             min_detection_confidence=0.7,
             min_tracking_confidence=0.7,
             max_num_hands=1)
@@ -60,17 +62,36 @@ class GesturesApp(QApplication):
 
     @pyqtSlot(object)
     def frame_captured(self, frame):
-        hand_results = self.hand_detector.process(frame)
-        if hand_results.multi_hand_landmarks:
-            for handLandmarks in hand_results.multi_hand_landmarks:
+        self.hand_results = self.hand_detector.process(frame)
+        if self.hand_results.multi_hand_landmarks:
+            for handLandmarks in self.hand_results.multi_hand_landmarks:
                 mp_drawing.draw_landmarks(frame, handLandmarks,
                                           mp_hand_detector.HAND_CONNECTIONS)
 
-        self.window.show_palm(frame)
-        self.get_next_frame.emit()
+        image = QImage(
+            frame.data,
+            frame.shape[1],
+            frame.shape[0],
+            QImage.Format.Format_BGR888,
+        )
 
-    def add_sample(self, sample_id):
-        self.log_info(f"Добавление образца: {sample_id}")
+        if self.hand_results.multi_handedness:
+            handedness_dict = MessageToDict(self.hand_results.multi_handedness[0])
+            classification = handedness_dict['classification'][0]
+            painter = QPainter(image)
+            painter.setPen(QColor(255, 255, 255))
+            painter.setFont(self.label_font)
+            painter.drawText(QPoint(5, 25), f"Уверенность: {classification['score']}")
+            hand = classification['label']
+            if hand == "Left":
+                hand = "Правая" # Зеркальное искажение
+            else:
+                hand = "Левая"
+            painter.drawText(QPoint(5, 55), hand)
+            painter.end()
+
+        self.window.show_palm(image)
+        self.get_next_frame.emit()
 
     @pyqtSlot(object)
     def log_info(self, message):

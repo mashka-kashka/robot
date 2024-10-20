@@ -27,15 +27,8 @@ class QRobotMainWindow(QMainWindow):
 
         self.logger = self.ui.teLog
 
-        self.graphicsView = QGraphicsView()
-        self.graphicsView.show()
-
-        self.cameraLayout = QGridLayout()
-        self.cameraLayout.addWidget(self.graphicsView, 0, 0, 1, 1)
-        self.ui.tabCamera.setLayout(self.cameraLayout)
-
         self.scene = QGraphicsScene()
-        self.graphicsView.setScene(self.scene)
+        self.ui.gv_camera.setScene(self.scene)
         self.scenePixmapItem = None
 
         app = QtWidgets.QApplication.instance()
@@ -59,11 +52,11 @@ class QRobotMainWindow(QMainWindow):
         else:
             self.scenePixmapItem.setPixmap(_pixmap)
 
-        self.graphicsView.fitInView(self.scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
-        self.graphicsView.show()
+        self.ui.gv_camera.fitInView(self.scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+        self.ui.gv_camera.show()
 
     def hide_image(self):
-        self.graphicsView.hide()
+        self.ui.gv_camera.hide()
 
     def log(self, message, type=LogMessageType.STATUS):
         fmt = QTextFormat()
