@@ -53,7 +53,7 @@
         </size>
        </property>
        <property name="currentIndex">
-        <number>0</number>
+        <number>1</number>
        </property>
        <widget class="QWidget" name="tabGestures">
         <attribute name="icon">
@@ -196,6 +196,9 @@
             <number>150</number>
            </attribute>
            <attribute name="horizontalHeaderStretchLastSection">
+            <bool>false</bool>
+           </attribute>
+           <attribute name="verticalHeaderCascadingSectionResizes">
             <bool>false</bool>
            </attribute>
           </widget>

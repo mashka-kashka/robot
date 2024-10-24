@@ -16,6 +16,7 @@ class GesturesApp(QApplication):
     connection = None
     current_frame = None
     label_font = QFont("Times", 20)
+    emoji_font = QFont("Noto Color Emoji", 64)
     hand_results = None
 
     def __init__(self, argv):
@@ -64,9 +65,28 @@ class GesturesApp(QApplication):
     def frame_captured(self, frame):
         self.hand_results = self.hand_detector.process(frame)
         if self.hand_results.multi_hand_landmarks:
-            for handLandmarks in self.hand_results.multi_hand_landmarks:
-                mp_drawing.draw_landmarks(frame, handLandmarks,
+            for handLandmark in self.hand_results.multi_hand_landmarks:
+                mp_drawing.draw_landmarks(frame, handLandmark,
                                           mp_hand_detector.HAND_CONNECTIONS)
+                min_x = None
+                min_y = None
+                min_z = None
+                max_x = None
+                max_y = None
+                max_z = None
+                for lm in handLandmark.landmark:
+                    if not min_x or lm.x < min_x:
+                        min_x = lm.x
+                    if not min_y or lm.y < min_y:
+                        min_y = lm.y
+                    if not min_z or lm.z < min_z:
+                        min_z = lm.y
+                    if not max_x or lm.x > max_x:
+                        max_x = lm.x
+                    if not max_y or lm.y > max_y:
+                        max_y = lm.y
+                    if not max_z or lm.z > max_z:
+                        max_z = lm.y
 
         image = QImage(
             frame.data,
@@ -88,6 +108,13 @@ class GesturesApp(QApplication):
             else:
                 hand = "Левая"
             painter.drawText(QPoint(5, 55), hand)
+            painter.drawText(QPoint(5, 85), f"X: {min_x:.2f} {max_x:.2f}")
+            painter.drawText(QPoint(5, 115), f"Y: {min_y:.2f} {max_y:.2f}")
+            painter.drawText(QPoint(5, 145), f"Z: {min_z:.2f} {max_z:.2f}")
+
+            #painter.setFont(self.emoji_font)
+            #painter.drawText(QPoint(5, 140), "👍")
+
             painter.end()
 
         self.window.show_palm(image)

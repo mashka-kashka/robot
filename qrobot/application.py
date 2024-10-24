@@ -104,6 +104,8 @@ class QRobotApplication(QApplication):
     def on_frame_captured(self, frame):
         if self.connection:
             self.send_frame_signal.emit(frame)
+        else:
+            frame = self.robot.process_frame(frame)
         self.show_frame_signal.emit(frame)
         self.get_frame_signal.emit()
 

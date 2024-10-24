@@ -1,5 +1,6 @@
-from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
+from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QPoint
 import mediapipe as mp
+from PyQt6.QtGui import QFont, QImage, QPainter
 from mediapipe import solutions
 from mediapipe.framework.formats import landmark_pb2
 from mediapipe.tasks import python
@@ -8,6 +9,8 @@ import numpy as np
 
 
 class QRobot(QObject):
+    emoji_font = QFont("Noto Color Emoji", 64)
+
     def __init__(self):
         super().__init__()
         _base_options = python.BaseOptions(model_asset_path='models/face_landmarker.task')
@@ -61,4 +64,16 @@ class QRobot(QObject):
                 connection_drawing_spec=mp.solutions.drawing_styles
                 .get_default_face_mesh_iris_connections_style())
 
-        return annotated_image
+        image = QImage(
+            annotated_image.data,
+            annotated_image.shape[1],
+            annotated_image.shape[0],
+            QImage.Format.Format_BGR888,
+        )
+
+        painter = QPainter(image)
+        painter.setFont(self.emoji_font)
+        painter.drawText(QPoint(5, 75), "😀")
+        painter.end()
+
+        return image

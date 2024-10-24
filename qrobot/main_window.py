@@ -36,14 +36,14 @@ class QRobotMainWindow(QMainWindow):
 
     @pyqtSlot(object)
     def show_frame(self, frame):
-        _image = QImage(
-            frame.data,
-            frame.shape[1],
-            frame.shape[0],
-            QImage.Format.Format_BGR888,
-        )
+        # _image = QImage(
+        #     frame.data,
+        #     frame.shape[1],
+        #     frame.shape[0],
+        #     QImage.Format.Format_BGR888,
+        # )
 
-        _pixmap = QPixmap.fromImage(_image)
+        _pixmap = QPixmap.fromImage(frame)
 
         if self.scenePixmapItem is None:
             self.scenePixmapItem = QGraphicsPixmapItem(_pixmap)
