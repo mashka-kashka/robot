@@ -189,6 +189,12 @@
         <layout class="QGridLayout" name="gridLayout_4">
          <item row="2" column="1">
           <widget class="QTableView" name="tv_data">
+           <property name="selectionMode">
+            <enum>QAbstractItemView::SingleSelection</enum>
+           </property>
+           <property name="selectionBehavior">
+            <enum>QAbstractItemView::SelectRows</enum>
+           </property>
            <attribute name="horizontalHeaderCascadingSectionResizes">
             <bool>true</bool>
            </attribute>
@@ -271,6 +277,34 @@
             </widget>
            </item>
            <item>
+            <widget class="QComboBox" name="cb_gestures">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>80</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="styleSheet">
+              <string notr="true">font: 18pt &quot;Noto Color Emoji&quot;;</string>
+             </property>
+             <property name="currentIndex">
+              <number>-1</number>
+             </property>
+             <property name="iconSize">
+              <size>
+               <width>24</width>
+               <height>24</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="QToolButton" name="tb_add_sample">
              <property name="text">
               <string>Добавить</string>
@@ -285,24 +319,30 @@
             </widget>
            </item>
            <item>
-            <widget class="QComboBox" name="cb_gestures">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
+            <widget class="QToolButton" name="tb_edit_sample">
+             <property name="text">
+              <string>Изменить</string>
              </property>
-             <property name="styleSheet">
-              <string notr="true">font: 18pt &quot;Noto Color Emoji&quot;;</string>
+             <property name="icon">
+              <iconset>
+               <normaloff>icons/edit.png</normaloff>icons/edit.png</iconset>
              </property>
-             <property name="currentIndex">
-              <number>-1</number>
+             <property name="toolButtonStyle">
+              <enum>Qt::ToolButtonTextBesideIcon</enum>
              </property>
-             <property name="iconSize">
-              <size>
-               <width>24</width>
-               <height>24</height>
-              </size>
+            </widget>
+           </item>
+           <item>
+            <widget class="QToolButton" name="tb_delete_sample">
+             <property name="text">
+              <string>Удалить</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normaloff>icons/delete.png</normaloff>icons/delete.png</iconset>
+             </property>
+             <property name="toolButtonStyle">
+              <enum>Qt::ToolButtonTextBesideIcon</enum>
              </property>
             </widget>
            </item>
@@ -509,6 +549,54 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>tb_edit_sample</sender>
+   <signal>clicked()</signal>
+   <receiver>GesturesWindow</receiver>
+   <slot>on_edit_sample()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>684</x>
+     <y>62</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>431</x>
+     <y>333</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>tv_data</sender>
+   <signal>doubleClicked(QModelIndex)</signal>
+   <receiver>GesturesWindow</receiver>
+   <slot>on_double_clicked_sample(QModelIndex)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>634</x>
+     <y>227</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>431</x>
+     <y>333</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>tb_delete_sample</sender>
+   <signal>clicked()</signal>
+   <receiver>GesturesWindow</receiver>
+   <slot>on_delete_sample()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>779</x>
+     <y>62</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>431</x>
+     <y>333</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>on_add_sample()</slot>
@@ -516,5 +604,8 @@
   <slot>on_open_data()</slot>
   <slot>on_save_data()</slot>
   <slot>on_save_data_as()</slot>
+  <slot>on_edit_sample()</slot>
+  <slot>on_delete_sample()</slot>
+  <slot>on_double_clicked_sample(QModelIndex)</slot>
  </slots>
 </ui>

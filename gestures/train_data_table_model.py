@@ -11,9 +11,9 @@ from google.protobuf.json_format import MessageToDict
 
 
 class TrainDataTableModel(QtCore.QAbstractTableModel):
+    GESTURE=0
     modified = False
     file_name = ''
-    size = 27
     white_color = QColor(255, 255, 255)
     landmarks = ['WRIST', 'THUMB_CMC', 'THUMB_MCP', 'THUMB_IP', 'THUMB_TIP', 'INDEX_FINGER_MCP', 'INDEX_FINGER_PIP',
                   'INDEX_FINGER_DIP', 'INDEX_FINGER_TIP', 'MIDDLE_FINGER_MCP', 'MIDDLE_FINGER_PIP', 'MIDDLE_FINGER_DIP',
@@ -30,28 +30,39 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
         self.green_pen.setWidth(1)
         self.green_pen.setColor(QColor(0, 200, 0))
 
+    def setData(self, index, value, role):
+        if not index.isValid():
+            return False
+        if role == Qt.ItemDataRole.EditRole:
+            try:
+                self.df.iat[index.row(), index.column()] = value
+                return True
+            except:
+                return False
+        return False
+
     def data(self, index, role):
         if role == Qt.ItemDataRole.DecorationRole:
             if index.column() == 0:
-                return self.draw_palm(index.row())
+                return self.draw_palm(self.df.index[index.row()])
         elif role == Qt.ItemDataRole.DisplayRole:
-                value = self.data.iloc[index.row(), index.column()]
+                value = self.df.iloc[index.row(), index.column()]
                 if value is np.nan:
                     return ""
                 else:
                     return str(value)
 
-    def draw_palm(self, row_index):
-        pixmap = QPixmap(self.size + 3, self.size + 3)
+    def draw_palm(self, row_index, size = 27):
+        pixmap = QPixmap(size + 3, size + 3)
         pixmap.fill(self.white_color)
         try:
-            row = self.data.loc[row_index,:]
+            row = self.df.loc[row_index, :]
             painter = QPainter(pixmap)
             painter.setPen(self.red_pen)
             points = []
             for i in range(len(self.landmarks)):
-                x = int(row.iloc[i * 3 + 2] * self.size + 1)
-                y = int(row.iloc[i * 3 + 3] * self.size + 1)
+                x = int(row.iloc[i * 3 + 2] * size + 1)
+                y = int(row.iloc[i * 3 + 3] * size + 1)
                 points.append(QPoint(x, y))
                 painter.drawEllipse(x - 1, y - 1, 2, 2)
 
@@ -67,15 +78,15 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
         return pixmap
 
     def rowCount(self, index):
-        return self.data.shape[0]
+        return self.df.shape[0]
 
     def columnCount(self, index):
-        return self.data.shape[1]
+        return self.df.shape[1]
 
     def headerData(self, section, orientation, role):
         if role == Qt.ItemDataRole.DisplayRole:
             if orientation == Qt.Orientation.Horizontal:
-                return str(self.data.columns[section])
+                return str(self.df.columns[section])
 
     def is_modified(self):
         return self.modified
@@ -93,7 +104,7 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
             for axis in ['X_', 'Y_', 'Z_']:
                 _data[axis+landmark] = pd.Series([], dtype=np.dtype("float"))
 
-        self.data = pd.DataFrame(_data)
+        self.df = pd.DataFrame(_data)
         self.modified = False
         self.modelReset.emit()
 
@@ -133,7 +144,7 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
                     sample.append((lm.y - min_y) / scale)
                     sample.append((lm.z - min_z) / scale)
 
-                self.data = pd.concat([self.data, pd.DataFrame([sample], columns=self.data.columns)], ignore_index=True)
+                self.df = pd.concat([self.df, pd.DataFrame([sample], columns=self.df.columns)], ignore_index=True)
                 self.modified = True
                 self.modelReset.emit()
             except Exception as e:
@@ -149,8 +160,8 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
     def open(self, filename):
         try:
             df = pd.read_csv(filename)
-            if (df.columns == self.data.columns).all():
-                self.data = df
+            if (df.columns == self.df.columns).all():
+                self.df = df
                 self.file_name = filename
                 self.modified = False
                 self.modelReset.emit()
@@ -166,7 +177,11 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
 
     def save(self, filename):
         self.file_name = filename
-        self.data.to_csv(filename, index=False)
+        self.df.to_csv(filename, index=False)
         self.modified = False
         self.modelReset.emit()
 
+    def removeRow(self, row):
+        self.beginRemoveRows(QModelIndex(), row, row)
+        self.df.drop([self.df.index[row]], inplace=True)
+        self.endRemoveRows()

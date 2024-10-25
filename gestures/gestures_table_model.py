@@ -1,3 +1,5 @@
+from math import isnan
+
 import numpy as np
 from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtCore import Qt, QSize
@@ -36,3 +38,13 @@ class GesturesTableModel(QtCore.QAbstractTableModel):
         if role == Qt.ItemDataRole.DisplayRole:
             if orientation == Qt.Orientation.Horizontal:
                 return str(self.data.columns[section])
+
+    def get_unicode(self, row):
+        try:
+            value = self.data.iloc[row, self.UNICODE_COLUMN]
+            if issubclass(type(value), str):
+                return value
+            else:
+                return None
+        except:
+            return None

@@ -1,7 +1,8 @@
+from random import sample
 from time import time, localtime, strftime
-from PyQt6.QtGui import QTextFormat, QColor, QTextCursor, QPixmap
+from PyQt6.QtGui import QTextFormat, QColor, QTextCursor, QPixmap, QIcon
 from PyQt6.QtWidgets import QMainWindow, QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, QFileDialog, QMessageBox
-from PyQt6.QtCore import pyqtSignal, Qt, pyqtSlot
+from PyQt6.QtCore import pyqtSignal, Qt, pyqtSlot, QModelIndex
 
 from gestures.gestures_table_model import GesturesTableModel
 from gestures.train_data_table_model import TrainDataTableModel
@@ -119,3 +120,51 @@ class GesturesWindow(QMainWindow):
     def on_data_changed(self):
         self.ui.tb_save_data.setEnabled(self.train_data_model.is_modified())
         self.ui.tb_save_data_as.setEnabled(self.train_data_model.is_modified())
+
+    @pyqtSlot()
+    def on_edit_sample(self):
+        sample_index = self.ui.tv_data.currentIndex()
+        if not sample_index.isValid():
+            return
+        dlg = QMessageBox(self)
+        dlg.setWindowTitle("Изменение жеста")
+        idx = sample_index.siblingAtColumn(self.train_data_model.GESTURE)
+        gesture_index = int(self.train_data_model.data(idx, Qt.ItemDataRole.DisplayRole))
+        if self.ui.cb_gestures.currentIndex() > 0:
+            dlg.setText(f"Заменить жест {self.table_model.get_unicode(gesture_index) or ''} на {self.ui.cb_gestures.currentText()}?")
+        else:
+            dlg.setText(f"Заменить жест {self.table_model.get_unicode(gesture_index) or ''} на неопределённый?")
+        dlg.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        dlg.setStyleSheet('font: "Noto Color Emoji";')
+        dlg.setIconPixmap(self.train_data_model.draw_palm(sample_index.row(), 100))
+        button = dlg.exec()
+
+        if button == QMessageBox.StandardButton.Yes:
+            self.train_data_model.setData(idx, self.ui.cb_gestures.currentIndex(), Qt.ItemDataRole.EditRole)
+            self.train_data_model.dataChanged.emit(idx,idx)
+
+    @pyqtSlot()
+    def on_delete_sample(self):
+        sample_index = self.ui.tv_data.currentIndex()
+        if not sample_index.isValid():
+            return
+        dlg = QMessageBox(self)
+        dlg.setWindowTitle("Удаление жеста")
+        idx = sample_index.siblingAtColumn(self.train_data_model.GESTURE)
+        gesture_index = int(self.train_data_model.data(idx, Qt.ItemDataRole.DisplayRole))
+        if self.ui.cb_gestures.currentIndex() > 0:
+            dlg.setText(
+                f"Вы действительно хотите удалить жест {self.table_model.get_unicode(gesture_index) or ''}?")
+        else:
+            dlg.setText(f"Вы действительно хотите удалить неопределённый жест?")
+        dlg.setStandardButtons(
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        dlg.setStyleSheet('font: "Noto Color Emoji";')
+        dlg.setIconPixmap(self.train_data_model.draw_palm(sample_index.row(), 100))
+        button = dlg.exec()
+
+        if button == QMessageBox.StandardButton.Yes:
+            self.train_data_model.removeRow(sample_index.row())
