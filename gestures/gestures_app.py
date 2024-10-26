@@ -3,10 +3,13 @@ from PyQt6.QtCore import pyqtSlot, QThread, pyqtSignal, QPoint
 from PyQt6.QtGui import QColor, QImage, QPainter, QFont
 from PyQt6.QtWidgets import QApplication
 from google.protobuf.json_format import MessageToDict
+
+from gestures.gestures_model import GesturesNet
 from gestures.gestures_window import GesturesWindow
 from gestures.robocamera import RoboCamera
 from mediapipe.python.solutions import drawing_utils as mp_drawing
 from mediapipe.python.solutions import hands as mp_hand_detector
+import torch
 import toml
 import sys
 
@@ -46,6 +49,18 @@ class GesturesApp(QApplication):
         self.get_next_frame.connect(self.camera.get_frame)
         self.camera_thread.started.connect(self.camera.start)
         self.camera_thread.start()
+
+        # Нейронная сеть для распознавания жестов
+        device = (
+            "cuda"
+            if torch.cuda.is_available()
+            else "mps"
+            if torch.backends.mps.is_available()
+            else "cpu"
+        )
+        self.log_info(f"Создание нейронной сети с использованием {device}")
+        self.gesture_net = GesturesNet().to(device)
+        print(self.gesture_net)
 
     def stop(self):
         if self.camera_thread.isRunning():

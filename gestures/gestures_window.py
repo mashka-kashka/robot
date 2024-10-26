@@ -3,13 +3,15 @@ from time import time, localtime, strftime
 from PyQt6.QtGui import QTextFormat, QColor, QTextCursor, QPixmap, QIcon
 from PyQt6.QtWidgets import QMainWindow, QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, QFileDialog, QMessageBox
 from PyQt6.QtCore import pyqtSignal, Qt, pyqtSlot, QModelIndex
-
+from tensorflow.python.ops.gen_batch_ops import batch
+from sklearn.model_selection import train_test_split
 from gestures.gestures_table_model import GesturesTableModel
 from gestures.train_data_table_model import TrainDataTableModel
 from gestures_window_ui import Ui_GesturesWindow
-
+import torch
 
 class GesturesWindow(QMainWindow):
+    TRAIN_TAB=2
 
     def __init__(self, app):
         super().__init__()
@@ -168,3 +170,40 @@ class GesturesWindow(QMainWindow):
 
         if button == QMessageBox.StandardButton.Yes:
             self.train_data_model.removeRow(sample_index.row())
+
+    @pyqtSlot()
+    def on_double_clicked_sample(self, index):
+        self.on_edit_sample()
+
+    @pyqtSlot(int)
+    def on_tab_changed(self, tab):
+        if tab == self.TRAIN_TAB:
+            self.ui.tb_train.setEnabled(self.train_data_model.rowCount(None) > 0)
+
+    @pyqtSlot()
+    def on_train_model(self):
+        try:
+            _test_size = float(self.ui.le_test_size.text())
+            _X = self.train_data_model.X() # Данные
+            _y = self.train_data_model.y() # Метки
+            _X_train, _X_test, _y_train, _y_test = train_test_split(
+                _X, _y, test_size=_test_size, random_state=42, shuffle=True)
+
+            _X_train_tensor = torch.tensor(_X_train.values)
+            _y_train_tensor = torch.tensor(_y_train.values).reshape(_y_train.shape[0],1)
+            _train_data = torch.hstack((_X_train_tensor, _y_train_tensor))
+
+            _X_test_tensor = torch.tensor(_X_test.values)
+            _y_test_tensor = torch.tensor(_y_test.values).reshape(_y_test.shape[0],1)
+            _test_data = torch.hstack((_X_test_tensor, _y_test_tensor))
+
+            _batch_size = int(self.ui.le_batch_size.text())
+            _train_loader = torch.utils.data.DataLoader(_train_data, batch_size=_batch_size, shuffle=True)
+            _test_loader = torch.utils.data.DataLoader(_test_data, batch_size=_batch_size, shuffle=True)
+
+            _epochs = int(self.ui.le_epochs.text())
+            _learning_rate = float(self.ui.le_learning_rate.text())
+        except Exception as e:
+            self.log(f"Ошибка обучения модели: {e}", QColor(200,0,0))
+
+

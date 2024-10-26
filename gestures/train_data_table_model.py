@@ -226,3 +226,9 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
         self.beginRemoveRows(QModelIndex(), row, row)
         self.df.drop([self.df.index[row]], inplace=True)
         self.endRemoveRows()
+
+    def X(self):
+        return self.df.loc[:,'Уверенность':]
+
+    def y(self):
+        return self.df['Жест']
