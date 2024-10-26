@@ -19,10 +19,10 @@ class GesturesWindow(QMainWindow):
         self.ui = Ui_GesturesWindow()
         self.ui.setupUi(self)
 
-        self.table_model = GesturesTableModel()
-        self.ui.tv_gestures.setModel(self.table_model)
+        self.gestures_data_model = GesturesTableModel()
+        self.ui.tv_gestures.setModel(self.gestures_data_model)
 
-        self.ui.cb_gestures.setModel(self.table_model)
+        self.ui.cb_gestures.setModel(self.gestures_data_model)
         self.ui.cb_gestures.setModelColumn(GesturesTableModel.UNICODE_COLUMN)
 
         self.train_data_model = TrainDataTableModel()
@@ -66,7 +66,7 @@ class GesturesWindow(QMainWindow):
 
     @pyqtSlot()
     def on_add_sample(self):
-        sample_index = self.ui.cb_gestures.currentIndex()
+        sample_index = self.ui.cb_gestures.currentData(Qt.ItemDataRole.UserRole)
         self.train_data_model.add(sample_index, self.app.hand_results)
 
     @pyqtSlot()
@@ -131,9 +131,9 @@ class GesturesWindow(QMainWindow):
         idx = sample_index.siblingAtColumn(self.train_data_model.GESTURE)
         gesture_index = int(self.train_data_model.data(idx, Qt.ItemDataRole.DisplayRole))
         if self.ui.cb_gestures.currentIndex() > 0:
-            dlg.setText(f"Заменить жест {self.table_model.get_unicode(gesture_index) or ''} на {self.ui.cb_gestures.currentText()}?")
+            dlg.setText(f"Заменить жест {self.gestures_data_model.get_unicode(gesture_index) or ''} на {self.ui.cb_gestures.currentText()}?")
         else:
-            dlg.setText(f"Заменить жест {self.table_model.get_unicode(gesture_index) or ''} на неопределённый?")
+            dlg.setText(f"Заменить жест {self.gestures_data_model.get_unicode(gesture_index) or ''} на неопределённый?")
         dlg.setStandardButtons(
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
@@ -156,7 +156,7 @@ class GesturesWindow(QMainWindow):
         gesture_index = int(self.train_data_model.data(idx, Qt.ItemDataRole.DisplayRole))
         if self.ui.cb_gestures.currentIndex() > 0:
             dlg.setText(
-                f"Вы действительно хотите удалить жест {self.table_model.get_unicode(gesture_index) or ''}?")
+                f"Вы действительно хотите удалить жест {self.gestures_data_model.get_unicode(gesture_index) or ''}?")
         else:
             dlg.setText(f"Вы действительно хотите удалить неопределённый жест?")
         dlg.setStandardButtons(

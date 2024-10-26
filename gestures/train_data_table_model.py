@@ -53,7 +53,7 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
                     return str(value)
 
     def draw_palm(self, row_index, size = 27):
-        pixmap = QPixmap(size + 3, size + 3)
+        pixmap = QPixmap(size, size)
         pixmap.fill(self.white_color)
         try:
             row = self.df.loc[row_index, :]
@@ -61,8 +61,8 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
             painter.setPen(self.red_pen)
             points = []
             for i in range(len(self.landmarks)):
-                x = int(row.iloc[i * 3 + 2] * size + 1)
-                y = int(row.iloc[i * 3 + 3] * size + 1)
+                x = int(row.iloc[i * 3 + 2] * size)
+                y = int(row.iloc[i * 3 + 3] * size)
                 points.append(QPoint(x, y))
                 painter.drawEllipse(x - 1, y - 1, 2, 2)
 
@@ -120,29 +120,32 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
                 max_x = None
                 max_y = None
                 max_z = None
-                for lm in hand_results.multi_hand_landmarks[0].landmark:
+
+                landmark = hand_results.multi_hand_landmarks[0].landmark
+                for lm in landmark:
                     if not min_x or lm.x < min_x:
                         min_x = lm.x
                     if not min_y or lm.y < min_y:
                         min_y = lm.y
                     if not min_z or lm.z < min_z:
-                        min_z = lm.y
+                        min_z = lm.z
                     if not max_x or lm.x > max_x:
                         max_x = lm.x
                     if not max_y or lm.y > max_y:
                         max_y = lm.y
                     if not max_z or lm.z > max_z:
-                        max_z = lm.y
+                        max_z = lm.z
 
                 dx = max_x - min_x
                 dy = max_y - min_y
                 dz = max_z - min_z
+
                 scale = max(dx, dy, dz)
 
-                for lm in hand_results.multi_hand_landmarks[0].landmark:
-                    sample.append((lm.x - min_x) / scale)
-                    sample.append((lm.y - min_y) / scale)
-                    sample.append((lm.z - min_z) / scale)
+                for i,lm in enumerate(landmark):
+                    sample.append((lm.x - min_x - dx / 2.) / scale + 0.5)
+                    sample.append((lm.y - min_y - dy / 2.) / scale + 0.5)
+                    sample.append((lm.z - min_z - dz / 2.) / scale + 0.5)
 
                 self.df = pd.concat([self.df, pd.DataFrame([sample], columns=self.df.columns)], ignore_index=True)
                 self.modified = True
@@ -157,11 +160,49 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
                 dlg.setIcon(QMessageBox.Icon.Critical)
                 button = dlg.exec()
 
-    def open(self, filename):
+    def centering(self):
+        self.df.reset_index(inplace=True)
+        for row_index, row in self.df.iterrows():
+            min_x = None
+            min_y = None
+            min_z = None
+            max_x = None
+            max_y = None
+            max_z = None
+
+            for i in range(len(self.landmarks)):
+                x = row.iloc[i * 3 + 2]
+                y = row.iloc[i * 3 + 3]
+                z = row.iloc[i * 3 + 4]
+                if not min_x or x < min_x:
+                    min_x = x
+                if not min_y or y < min_y:
+                    min_y = y
+                if not min_z or z < min_z:
+                    min_z = z
+                if not max_x or x > max_x:
+                    max_x = x
+                if not max_y or y > max_y:
+                    max_y = y
+                if not max_z or z > max_z:
+                    max_z = z
+
+            dx = 0.5 - min_x - (max_x - min_x) * 0.5
+            dy = 0.5 - min_x - (max_y - min_y) * 0.5
+            dz = 0.5 - min_x - (max_z - min_z) * 0.5
+
+            for i in range(len(self.landmarks)):
+                row.iat[i * 3 + 2] += dx
+                row.iat[i * 3 + 3] += dy
+                row.iat[i * 3 + 4] += dz
+
+    def open(self, filename, centering = False):
         try:
             df = pd.read_csv(filename)
             if (df.columns == self.df.columns).all():
                 self.df = df
+                if (centering):
+                    self.centering()
                 self.file_name = filename
                 self.modified = False
                 self.modelReset.emit()

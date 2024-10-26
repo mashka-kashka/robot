@@ -8,6 +8,7 @@ from PyQt6.QtGui import QFont
 
 
 class GesturesTableModel(QtCore.QAbstractTableModel):
+    ID_COLUMN = 0
     UNICODE_COLUMN = 2
     NAME_COLUMN = 3
 
@@ -17,7 +18,9 @@ class GesturesTableModel(QtCore.QAbstractTableModel):
         self.noto_font = QFont("Noto Color Emoji", 20)
 
     def data(self, index, role):
-        if role == Qt.ItemDataRole.DisplayRole:
+        if role == Qt.ItemDataRole.UserRole:
+            return self.data.iloc[index.row(), GesturesTableModel.ID_COLUMN]
+        elif role == Qt.ItemDataRole.DisplayRole:
             value = self.data.iloc[index.row(), index.column()]
             if value is np.nan:
                 return ""
