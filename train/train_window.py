@@ -1,4 +1,5 @@
 from random import sample
+from random import sample
 from time import time, localtime, strftime
 from PyQt6.QtGui import QTextFormat, QColor, QTextCursor, QPixmap, QIcon, QPainter, QFont
 from PyQt6.QtWidgets import QMainWindow, QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, QFileDialog, QMessageBox
@@ -245,7 +246,7 @@ class TrainWindow(QMainWindow):
         if button == QMessageBox.StandardButton.Yes:
             self.train_data_model.removeRow(sample_index.row())
 
-    @pyqtSlot()
+    @pyqtSlot(QModelIndex)
     def on_double_clicked_sample(self, index):
         self.on_edit_sample()
 
