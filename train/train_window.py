@@ -6,11 +6,11 @@ from PyQt6.QtCore import pyqtSignal, Qt, pyqtSlot, QModelIndex, QPoint
 from tensorflow.python.ops.gen_batch_ops import batch
 from sklearn.model_selection import train_test_split
 
-from gestures.gestures_dataset import GesturesDataset
-from gestures.gestures_model import GesturesNet
-from gestures.gestures_table_model import GesturesTableModel
-from gestures.train_data_table_model import TrainDataTableModel
-from gestures_window_ui import Ui_GesturesWindow
+from train.gestures_dataset import GesturesDataset
+from train.gestures_model import GesturesNet
+from train.gestures_table_model import GesturesTableModel
+from train.train_data_table_model import TrainDataTableModel
+from train_window_ui import Ui_TrainWindow
 
 import torch
 import torch.nn as nn
@@ -18,7 +18,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
 
-class GesturesWindow(QMainWindow):
+class TrainWindow(QMainWindow):
     TRAIN_TAB=2
 
     label_font = QFont("Times", 20)
@@ -30,7 +30,7 @@ class GesturesWindow(QMainWindow):
         self.app = app
 
         # Интерфейс
-        self.ui = Ui_GesturesWindow()
+        self.ui = Ui_TrainWindow()
         self.ui.setupUi(self)
 
         self.palm_pixmap = None
@@ -252,7 +252,7 @@ class GesturesWindow(QMainWindow):
     @pyqtSlot(int)
     def on_tab_changed(self, tab):
         if tab == self.TRAIN_TAB:
-            self.ui.tb_train.setEnabled(self.train_data_model.rowCount(None) > 0)
+            self.ui.tb_train_model.setEnabled(self.train_data_model.rowCount(None) > 0)
 
     @pyqtSlot()
     def on_train_model(self):
@@ -322,4 +322,18 @@ class GesturesWindow(QMainWindow):
         except Exception as e:
             self.log(f"Ошибка обучения модели: {e}", QColor(200,0,0))
 
+    @pyqtSlot()
+    def on_open_model(self):
+        pass
 
+    @pyqtSlot()
+    def on_save_model(self):
+        pass
+
+    @pyqtSlot()
+    def on_save_model_as(self):
+        pass
+
+    @pyqtSlot()
+    def on_open_labels(self):
+        pass

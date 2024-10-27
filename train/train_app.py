@@ -2,15 +2,15 @@ import numpy
 from PyQt6.QtCore import pyqtSlot, QThread, pyqtSignal
 from PyQt6.QtGui import QColor, QImage
 from PyQt6.QtWidgets import QApplication
-from gestures.gestures_window import GesturesWindow
-from gestures.robocamera import RoboCamera
+from train.train_window import TrainWindow
+from train.robocamera import RoboCamera
 from mediapipe.python.solutions import drawing_utils as mp_drawing
 from mediapipe.python.solutions import hands as mp_hand_detector
 import toml
 import sys
 
 
-class GesturesApp(QApplication):
+class TrainApp(QApplication):
     get_next_frame = pyqtSignal()
     connection = None
     current_frame = None
@@ -88,8 +88,8 @@ class GesturesApp(QApplication):
         self.window.log(message, QColor(255, 0, 0))
 
 if __name__ == "__main__":
-    app = GesturesApp(sys.argv)
-    _main_window = GesturesWindow(app)
+    app = TrainApp(sys.argv)
+    _main_window = TrainWindow(app)
     _main_window.show()
     app.start(_main_window)
     app.exec()
