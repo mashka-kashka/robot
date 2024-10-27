@@ -1,63 +1,137 @@
 from random import sample
 from time import time, localtime, strftime
-from PyQt6.QtGui import QTextFormat, QColor, QTextCursor, QPixmap, QIcon
+from PyQt6.QtGui import QTextFormat, QColor, QTextCursor, QPixmap, QIcon, QPainter, QFont
 from PyQt6.QtWidgets import QMainWindow, QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, QFileDialog, QMessageBox
-from PyQt6.QtCore import pyqtSignal, Qt, pyqtSlot, QModelIndex
+from PyQt6.QtCore import pyqtSignal, Qt, pyqtSlot, QModelIndex, QPoint
 from tensorflow.python.ops.gen_batch_ops import batch
 from sklearn.model_selection import train_test_split
+
+from gestures.gestures_dataset import GesturesDataset
+from gestures.gestures_model import GesturesNet
 from gestures.gestures_table_model import GesturesTableModel
 from gestures.train_data_table_model import TrainDataTableModel
 from gestures_window_ui import Ui_GesturesWindow
+
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+import torch.utils.data
 
 class GesturesWindow(QMainWindow):
     TRAIN_TAB=2
+
+    label_font = QFont("Times", 20)
+    emoji_font = QFont("Noto Color Emoji", 64)
 
     def __init__(self, app):
         super().__init__()
 
         self.app = app
 
+        # Интерфейс
         self.ui = Ui_GesturesWindow()
         self.ui.setupUi(self)
 
+        self.palm_pixmap = None
+        self.palm_scene = QGraphicsScene()
+        self.ui.gv_palm.setScene(self.palm_scene)
+        self.classification_scene = QGraphicsScene()
+        self.ui.gv_classification.setScene(self.classification_scene)
+
+        self.logger = self.ui.teLog
+
+        # Модель списка жестов
         self.gestures_data_model = GesturesTableModel()
         self.ui.tv_gestures.setModel(self.gestures_data_model)
-
         self.ui.cb_gestures.setModel(self.gestures_data_model)
         self.ui.cb_gestures.setModelColumn(GesturesTableModel.UNICODE_COLUMN)
 
+        # Модель таблицы данных для обучения
         self.train_data_model = TrainDataTableModel()
         self.ui.tv_data.setModel(self.train_data_model)
         self.train_data_model.dataChanged.connect(self.on_data_changed)
         self.train_data_model.modelReset.connect(self.on_data_changed)
 
-        self.scene = QGraphicsScene()
-        self.ui.gv_palm.setScene(self.scene)
-        self.scenePixmapItem = None
+        # Нейронная сеть для распознавания жестов
+        if torch.cuda.is_available():
+            self.device = torch.device("cuda")
+        else:
+            self.device = torch.device("cpu")
 
-        self.logger = self.ui.teLog
-
-        #self.scene = QGraphicsScene()
-        #self.ui.gv_camera.setScene(self.scene)
-        #self.scenePixmapItem = None
+        self.gestures_model = None
 
     def is_palm_visible(self):
         return not self.ui.gv_palm.visibleRegion().isEmpty()
 
     @pyqtSlot(object)
-    def show_palm(self, image):
+    def show_palm(self, image, results):
+        # Активна вкладка "Распознавание"
+        if self.gestures_model and self.ui.tabClassification.isVisible():
+            try:
+                sample = self.train_data_model.get_sample(results)
+                if sample:
+                    input = torch.tensor(sample).double().to(self.device)
+                    self.gestures_model.eval()
+                    prediction = self.gestures_model(input)
+                    #prediction = F.softmax(prediction)
+                    score = max(prediction)
+                    ids = self.train_data_model.get_gestures_ids()
+                    gesture = ids[prediction.argmax()]
+                    gesture = self.gestures_data_model.get_unicode_by_id(gesture)
+
+                    painter = QPainter(image)
+                    painter.setPen(QColor(255, 255, 255))
+                    painter.setFont(self.label_font)
+                    painter.drawText(QPoint(5, 25), f"Уверенность: {score:.4f}")
+                    #if score > 0.7:
+                    painter.setFont(self.emoji_font)
+                    painter.drawText(QPoint(5, 100), f"{gesture}")
+            except Exception as e:
+                print(e)
+
         _pixmap = QPixmap.fromImage(image)
 
-        if self.scenePixmapItem is None:
-            self.scenePixmapItem = QGraphicsPixmapItem(_pixmap)
-            self.scene.addItem(self.scenePixmapItem)
-            self.scenePixmapItem.setZValue(0)
+        if self.palm_pixmap is None:
+            self.palm_pixmap = QGraphicsPixmapItem(_pixmap)
+            self.palm_pixmap.setZValue(0)
         else:
-            self.scenePixmapItem.setPixmap(_pixmap)
+            self.palm_pixmap.setPixmap(_pixmap)
 
-        self.ui.gv_palm.fitInView(self.scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
-        self.ui.gv_palm.show()
+        # Активнка вкладка "Распознавание"
+        if self.ui.tabClassification.isVisible():
+            if len(self.classification_scene.items()) == 0:
+                self.classification_scene.addItem(self.palm_pixmap)
+            self.ui.gv_classification.fitInView(self.classification_scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+            self.ui.gv_classification.show()
+
+        # Активна вкладка "Данные"
+        elif self.ui.tabData.isVisible():
+            # if results.multi_handedness:
+            #     handedness_dict = MessageToDict(self.hand_results.multi_handedness[0])
+            #     classification = handedness_dict['classification'][0]
+            #     painter = QPainter(image)
+            #     painter.setPen(QColor(255, 255, 255))
+            #     painter.setFont(self.label_font)
+            #     painter.drawText(QPoint(5, 25), f"Уверенность: {classification['score']}")
+            #     hand = classification['label']
+            #     if hand == "Left":
+            #         hand = "Правая"  # Зеркальное искажение
+            #     else:
+            #         hand = "Левая"
+            #     painter.drawText(QPoint(5, 55), hand)
+            #     painter.drawText(QPoint(5, 85), f"X: {min_x:.2f} {max_x:.2f}")
+            #     painter.drawText(QPoint(5, 115), f"Y: {min_y:.2f} {max_y:.2f}")
+            #     painter.drawText(QPoint(5, 145), f"Z: {min_z:.2f} {max_z:.2f}")
+            #
+            #     # painter.setFont(self.emoji_font)
+            #     # painter.drawText(QPoint(5, 140), "👍")
+            #
+            #     painter.end()
+            if len(self.palm_scene.items()) == 0:
+                self.palm_scene.addItem(self.palm_pixmap)
+            self.ui.gv_palm.fitInView(self.palm_scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+            self.ui.gv_palm.show()
 
     def log(self, message, color):
         fmt = QTextFormat()
@@ -183,26 +257,68 @@ class GesturesWindow(QMainWindow):
     @pyqtSlot()
     def on_train_model(self):
         try:
-            _test_size = float(self.ui.le_test_size.text())
-            _X = self.train_data_model.X() # Данные
-            _y = self.train_data_model.y() # Метки
-            _X_train, _X_test, _y_train, _y_test = train_test_split(
-                _X, _y, test_size=_test_size, random_state=42, shuffle=True)
+            labels = self.train_data_model.get_gestures_ids()
+            if not self.gestures_model or not all(x == y for x, y in zip(labels, self.gestures_model.labels)):
+                self.gestures_model = GesturesNet(labels).to(self.device)
 
-            _X_train_tensor = torch.tensor(_X_train.values)
-            _y_train_tensor = torch.tensor(_y_train.values).reshape(_y_train.shape[0],1)
-            _train_data = torch.hstack((_X_train_tensor, _y_train_tensor))
+            # Разделение полного набора данных на обучающий и тестовых наборы
+            test_size = float(self.ui.le_test_size.text())
+            X = self.train_data_model.X() # Данные
+            y = self.train_data_model.y() # Метки
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=test_size, random_state=42, shuffle=True)
 
-            _X_test_tensor = torch.tensor(_X_test.values)
-            _y_test_tensor = torch.tensor(_y_test.values).reshape(_y_test.shape[0],1)
-            _test_data = torch.hstack((_X_test_tensor, _y_test_tensor))
+            # Наборы обучающих и тестовых данных
+            train_data = GesturesDataset(X_train, y_train)
+            test_data = GesturesDataset(X_test, y_test)
 
-            _batch_size = int(self.ui.le_batch_size.text())
-            _train_loader = torch.utils.data.DataLoader(_train_data, batch_size=_batch_size, shuffle=True)
-            _test_loader = torch.utils.data.DataLoader(_test_data, batch_size=_batch_size, shuffle=True)
+            # Загрузчики наборов данных
+            batch_size = int(self.ui.le_batch_size.text())
+            train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, )
+            val_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=True)
 
-            _epochs = int(self.ui.le_epochs.text())
-            _learning_rate = float(self.ui.le_learning_rate.text())
+            # Оптимизатор
+            learning_rate = float(self.ui.le_learning_rate.text())
+            optimizer = optim.Adam(self.gestures_model.parameters(), lr=learning_rate)
+
+            # Обучение
+            loss_fn = torch.nn.CrossEntropyLoss()
+            epochs = int(self.ui.le_epochs.text())
+            for epoch in range(1, epochs + 1):
+                training_loss = 0.0
+                valid_loss = 0.0
+                self.gestures_model.train()
+                for batch in train_loader:
+                    optimizer.zero_grad()
+                    inputs, targets = batch
+                    inputs = inputs.to(self.device)
+                    targets = targets.to(self.device)
+                    output = self.gestures_model(inputs)
+                    loss = loss_fn(output, targets)
+                    loss.backward()
+                    optimizer.step()
+                    training_loss += loss.data.item() * inputs.size(0)
+                training_loss /= len(train_loader.dataset)
+
+                self.gestures_model.eval()
+                num_correct = 0
+                num_examples = 0
+                for batch in val_loader:
+                    inputs, targets = batch
+                    inputs = inputs.to(self.device)
+                    output = self.gestures_model(inputs)
+                    targets = targets.to(self.device)
+                    loss = loss_fn(output, targets)
+                    valid_loss += loss.data.item() * inputs.size(0)
+                    correct = torch.eq(torch.max(F.softmax(output, dim=1), dim=1)[1], targets)
+                    num_correct += torch.sum(correct).item()
+                    num_examples += correct.shape[0]
+                valid_loss /= len(val_loader.dataset)
+
+                print('Epoch: {}, Training Loss: {:.2f}, Validation Loss: {:.2f}, accuracy = {:.2f}'.format(epoch,
+                                                                                                            training_loss,
+                                                                                                            valid_loss,
+                                                                                                            num_correct / num_examples))
         except Exception as e:
             self.log(f"Ошибка обучения модели: {e}", QColor(200,0,0))
 

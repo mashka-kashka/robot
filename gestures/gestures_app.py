@@ -1,15 +1,11 @@
 import numpy
-from PyQt6.QtCore import pyqtSlot, QThread, pyqtSignal, QPoint
-from PyQt6.QtGui import QColor, QImage, QPainter, QFont
+from PyQt6.QtCore import pyqtSlot, QThread, pyqtSignal
+from PyQt6.QtGui import QColor, QImage
 from PyQt6.QtWidgets import QApplication
-from google.protobuf.json_format import MessageToDict
-
-from gestures.gestures_model import GesturesNet
 from gestures.gestures_window import GesturesWindow
 from gestures.robocamera import RoboCamera
 from mediapipe.python.solutions import drawing_utils as mp_drawing
 from mediapipe.python.solutions import hands as mp_hand_detector
-import torch
 import toml
 import sys
 
@@ -18,8 +14,6 @@ class GesturesApp(QApplication):
     get_next_frame = pyqtSignal()
     connection = None
     current_frame = None
-    label_font = QFont("Times", 20)
-    emoji_font = QFont("Noto Color Emoji", 64)
     hand_results = None
 
     def __init__(self, argv):
@@ -50,18 +44,6 @@ class GesturesApp(QApplication):
         self.camera_thread.started.connect(self.camera.start)
         self.camera_thread.start()
 
-        # Нейронная сеть для распознавания жестов
-        device = (
-            "cuda"
-            if torch.cuda.is_available()
-            else "mps"
-            if torch.backends.mps.is_available()
-            else "cpu"
-        )
-        self.log_info(f"Создание нейронной сети с использованием {device}")
-        self.gesture_net = GesturesNet().to(device)
-        print(self.gesture_net)
-
     def stop(self):
         if self.camera_thread.isRunning():
             self.camera.stop()
@@ -83,26 +65,6 @@ class GesturesApp(QApplication):
             for handLandmark in self.hand_results.multi_hand_landmarks:
                 mp_drawing.draw_landmarks(frame, handLandmark,
                                           mp_hand_detector.HAND_CONNECTIONS)
-                min_x = None
-                min_y = None
-                min_z = None
-                max_x = None
-                max_y = None
-                max_z = None
-                for lm in handLandmark.landmark:
-                    if not min_x or lm.x < min_x:
-                        min_x = lm.x
-                    if not min_y or lm.y < min_y:
-                        min_y = lm.y
-                    if not min_z or lm.z < min_z:
-                        min_z = lm.y
-                    if not max_x or lm.x > max_x:
-                        max_x = lm.x
-                    if not max_y or lm.y > max_y:
-                        max_y = lm.y
-                    if not max_z or lm.z > max_z:
-                        max_z = lm.y
-
         image = QImage(
             frame.data,
             frame.shape[1],
@@ -110,29 +72,7 @@ class GesturesApp(QApplication):
             QImage.Format.Format_BGR888,
         )
 
-        if self.hand_results.multi_handedness:
-            handedness_dict = MessageToDict(self.hand_results.multi_handedness[0])
-            classification = handedness_dict['classification'][0]
-            painter = QPainter(image)
-            painter.setPen(QColor(255, 255, 255))
-            painter.setFont(self.label_font)
-            painter.drawText(QPoint(5, 25), f"Уверенность: {classification['score']}")
-            hand = classification['label']
-            if hand == "Left":
-                hand = "Правая" # Зеркальное искажение
-            else:
-                hand = "Левая"
-            painter.drawText(QPoint(5, 55), hand)
-            painter.drawText(QPoint(5, 85), f"X: {min_x:.2f} {max_x:.2f}")
-            painter.drawText(QPoint(5, 115), f"Y: {min_y:.2f} {max_y:.2f}")
-            painter.drawText(QPoint(5, 145), f"Z: {min_z:.2f} {max_z:.2f}")
-
-            #painter.setFont(self.emoji_font)
-            #painter.drawText(QPoint(5, 140), "👍")
-
-            painter.end()
-
-        self.window.show_palm(image)
+        self.window.show_palm(image, self.hand_results)
         self.get_next_frame.emit()
 
     @pyqtSlot(object)

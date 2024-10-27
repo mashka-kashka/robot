@@ -97,22 +97,22 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
     def create(self):
         _data = {
                 "Жест": pd.Series([], dtype=np.dtype("int8")),
-                "Уверенность": pd.Series([], dtype=np.dtype("float")), # confidence
+                "Уверенность": pd.Series([], dtype=np.float64), # confidence
                }
 
         for i,landmark in enumerate(self.landmarks):
             for axis in ['X_', 'Y_', 'Z_']:
-                _data[axis+landmark] = pd.Series([], dtype=np.dtype("float"))
+                _data[axis+landmark] = pd.Series([], dtype=np.float64)
 
         self.df = pd.DataFrame(_data)
         self.modified = False
         self.modelReset.emit()
 
-    def add(self, sample_id, hand_results):
+    def get_sample(self, hand_results):
         if hand_results and hand_results.multi_hand_landmarks:
             try:
                 score = MessageToDict(hand_results.multi_handedness[0])['classification'][0]['score']
-                sample = [sample_id, score]
+                sample = [score]
 
                 min_x = None
                 min_y = None
@@ -147,18 +147,19 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
                     sample.append((lm.y - min_y - dy / 2.) / scale + 0.5)
                     sample.append((lm.z - min_z - dz / 2.) / scale + 0.5)
 
-                self.df = pd.concat([self.df, pd.DataFrame([sample], columns=self.df.columns)], ignore_index=True)
-                self.modified = True
-                self.modelReset.emit()
+                return sample
             except Exception as e:
-                dlg = QMessageBox()
-                dlg.setWindowTitle("Ошибка добавления данных!")
-                dlg.setText(f"{e}")
-                dlg.setStandardButtons(
-                    QMessageBox.StandardButton.Ok
-                )
-                dlg.setIcon(QMessageBox.Icon.Critical)
-                button = dlg.exec()
+                print(f"{e}")
+        return None
+
+    def add(self, sample_id, hand_results):
+        sample = self.get_sample(hand_results)
+        sample.insert(0, sample_id)
+        if not sample:
+            return
+        self.df = pd.concat([self.df, pd.DataFrame([sample], columns=self.df.columns)], ignore_index=True)
+        self.modified = True
+        self.modelReset.emit()
 
     def centering(self):
         self.df.reset_index(inplace=True)
@@ -231,4 +232,14 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
         return self.df.loc[:,'Уверенность':]
 
     def y(self):
-        return self.df['Жест']
+        gestures = self.df['Жест']
+
+        # Замена идентификаторов жестов на их порядковые номера
+        replacement = {}
+        for idx, gesture_id in enumerate(gestures.unique()):
+            replacement[gesture_id] = idx
+
+        return gestures.replace(replacement)
+
+    def get_gestures_ids(self):
+        return self.df['Жест'].unique()

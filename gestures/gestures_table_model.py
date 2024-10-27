@@ -51,3 +51,15 @@ class GesturesTableModel(QtCore.QAbstractTableModel):
                 return None
         except:
             return None
+
+    def get_unicode_by_id(self, id):
+        try:
+            df = self.data.set_index(['id'])
+            value = df.loc[id]['Unicode']
+            if issubclass(type(value), str):
+                return value
+            else:
+                return None
+        except Exception as e:
+            print(e)
+            return None

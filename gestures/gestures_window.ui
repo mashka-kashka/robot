@@ -415,10 +415,10 @@
             <string>999</string>
            </property>
            <property name="text">
-            <string>5</string>
+            <string>1</string>
            </property>
            <property name="cursorPosition">
-            <number>1</number>
+            <number>3</number>
            </property>
           </widget>
          </item>
@@ -475,6 +475,20 @@
             <string>Количестов эпох</string>
            </property>
           </widget>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="tabClassification">
+        <attribute name="icon">
+         <iconset>
+          <normaloff>icons/model.png</normaloff>icons/model.png</iconset>
+        </attribute>
+        <attribute name="title">
+         <string>Распознавание</string>
+        </attribute>
+        <layout class="QGridLayout" name="gridLayout_3">
+         <item row="0" column="0">
+          <widget class="QGraphicsView" name="gv_classification"/>
          </item>
         </layout>
        </widget>
