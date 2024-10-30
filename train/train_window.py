@@ -21,9 +21,9 @@ import torch.utils.data
 
 class TrainWindow(QMainWindow):
     TRAIN_TAB=2
-
     label_font = QFont("Times", 20)
     emoji_font = QFont("Noto Color Emoji", 64)
+    model_filename = ''
 
     def __init__(self, app):
         super().__init__()
@@ -320,20 +320,44 @@ class TrainWindow(QMainWindow):
                                                                                                             training_loss,
                                                                                                             valid_loss,
                                                                                                             num_correct / num_examples))
+                self.ui.tb_save_model.setEnabled(True)
+                self.ui.tb_save_model_as.setEnabled(True)
         except Exception as e:
             self.log(f"Ошибка обучения модели: {e}", QColor(200,0,0))
 
     @pyqtSlot()
     def on_open_model(self):
-        pass
+        fname = QFileDialog.getOpenFileName(
+            self,
+            "Открыть файл параметров обученной модели",
+            ".",
+            "Параметры обученной модели (*.mdl);; Все файлы (*.*)",
+        )
+        if fname[0]:
+            self.gestures_model = torch.load(fname[0])
+            self.model_filename = fname[0]
+            self.gestures_model.to(self.device)
+            self.ui.tb_save_model_as.setEnabled(True)
 
     @pyqtSlot()
     def on_save_model(self):
-        pass
+        if self.model_filename:
+            torch.save(self.gestures_model, self.model_filename)
+            self.ui.tb_save.setEnabled(False)
+        else:
+            self.on_save_model_as()
 
     @pyqtSlot()
     def on_save_model_as(self):
-        pass
+        fname = QFileDialog.getSaveFileName(
+            self,
+            "Сохранить файл параметров обученной модели",
+            ".",
+            "Параметры обученной модели (*.mdl);; Все файлы (*.*)",
+        )
+        if fname[0]:
+            self.model_filename = fname[0]
+            self.ui.tb_save.setEnabled(False)
 
     @pyqtSlot()
     def on_open_labels(self):

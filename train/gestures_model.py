@@ -1,8 +1,10 @@
+import torch
 from torch import nn
 import torch.nn.functional as F
-
+from PyQt6.QtWidgets import QMessageBox
 
 class GesturesNet(nn.Module):
+
     def __init__(self, labels):
         super().__init__()
         self.labels = labels
