@@ -1,23 +1,28 @@
+from operator import lshift
 from random import sample
 from random import sample
 from time import time, localtime, strftime
 from PyQt6.QtGui import QTextFormat, QColor, QTextCursor, QPixmap, QIcon, QPainter, QFont
-from PyQt6.QtWidgets import QMainWindow, QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, QFileDialog, QMessageBox
+from PyQt6.QtWidgets import (QMainWindow, QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, QFileDialog, QMessageBox,
+                             QVBoxLayout)
 from PyQt6.QtCore import pyqtSignal, Qt, pyqtSlot, QModelIndex, QPoint
 from tensorflow.python.ops.gen_batch_ops import batch
 from sklearn.model_selection import train_test_split
+from tensorflow.python.ops.metrics_impl import accuracy
+from torch import layout
 
 from train.gestures_dataset import GesturesDataset
 from train.gestures_model import GesturesNet
 from train.gestures_table_model import GesturesTableModel
 from train.train_data_table_model import TrainDataTableModel
 from train_window_ui import Ui_TrainWindow
-
+import pickle
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.utils.data
+import pyqtgraph as pg
 
 class TrainWindow(QMainWindow):
     TRAIN_TAB=2
@@ -39,6 +44,23 @@ class TrainWindow(QMainWindow):
         self.ui.gv_palm.setScene(self.palm_scene)
         self.classification_scene = QGraphicsScene()
         self.ui.gv_classification.setScene(self.classification_scene)
+
+        layout = QVBoxLayout()
+        self.train_progress_graph = pg.PlotWidget()
+        self.train_progress_graph.setBackground("w")
+        self.train_progress_graph.setLabel(
+            "bottom",
+            '<span style="color: red; font-size: 14px">Эпохи</span>'
+        )
+        self.train_progress_graph.addLegend()
+        self.train_loss_plot = pg.PlotCurveItem(clear=True, pen="r", name="Ошибка на обучающей выборке")
+        self.valid_loss_plot = pg.PlotCurveItem(clear=True, pen="g", name="Ошибка на тестовой выборке")
+        self.accuracy_plot = pg.PlotCurveItem(clear=True, pen="b", name="Точность")
+        self.train_progress_graph.addItem(self.train_loss_plot)
+        self.train_progress_graph.addItem(self.valid_loss_plot)
+        self.train_progress_graph.addItem(self.accuracy_plot)
+        layout.addWidget(self.train_progress_graph)
+        self.ui.fr_progress.setLayout(layout)
 
         self.logger = self.ui.teLog
 
@@ -77,8 +99,7 @@ class TrainWindow(QMainWindow):
                     prediction = self.gestures_model(input)
                     #prediction = F.softmax(prediction)
                     score = max(prediction)
-                    ids = self.train_data_model.get_gestures_ids()
-                    gesture = ids[prediction.argmax()]
+                    gesture = self.gestures_model.get_gesture(prediction)
                     gesture = self.gestures_data_model.get_unicode_by_id(gesture)
 
                     painter = QPainter(image)
@@ -258,6 +279,8 @@ class TrainWindow(QMainWindow):
     @pyqtSlot()
     def on_train_model(self):
         try:
+            y_range = 1.0
+
             labels = self.train_data_model.get_gestures_ids()
             if not self.gestures_model or not all(x == y for x, y in zip(labels, self.gestures_model.labels)):
                 self.gestures_model = GesturesNet(labels).to(self.device)
@@ -284,8 +307,13 @@ class TrainWindow(QMainWindow):
 
             # Обучение
             loss_fn = torch.nn.CrossEntropyLoss()
-            epochs = int(self.ui.le_epochs.text())
-            for epoch in range(1, epochs + 1):
+            epochs_count = int(self.ui.le_epochs.text())
+            training_losses = []
+            valid_losses = []
+            accuracies = []
+            epochs = []
+            for epoch in range(1, epochs_count + 1):
+                epochs.append(epoch)
                 training_loss = 0.0
                 valid_loss = 0.0
                 self.gestures_model.train()
@@ -300,6 +328,10 @@ class TrainWindow(QMainWindow):
                     optimizer.step()
                     training_loss += loss.data.item() * inputs.size(0)
                 training_loss /= len(train_loader.dataset)
+                training_losses.append(training_loss)
+
+                if training_loss > y_range:
+                    y_range = training_loss
 
                 self.gestures_model.eval()
                 num_correct = 0
@@ -315,11 +347,21 @@ class TrainWindow(QMainWindow):
                     num_correct += torch.sum(correct).item()
                     num_examples += correct.shape[0]
                 valid_loss /= len(val_loader.dataset)
+                valid_losses.append(valid_loss)
 
-                print('Epoch: {}, Training Loss: {:.2f}, Validation Loss: {:.2f}, accuracy = {:.2f}'.format(epoch,
-                                                                                                            training_loss,
-                                                                                                            valid_loss,
-                                                                                                            num_correct / num_examples))
+                if valid_loss > y_range:
+                    y_range = valid_loss
+
+                accuracy =  num_correct / num_examples
+                accuracies.append(accuracy)
+
+                print('Эпоха: {}, Ошибка на обучающей выборке: {:.2f}, Ошибка на тестовой выборке: {:.2f}, '
+                      'Точность = {:.2f}'.format(epoch, training_loss, valid_loss, accuracy))
+
+                self.train_loss_plot.setData(epochs, training_losses)
+                self.valid_loss_plot.setData(epochs, valid_losses)
+                self.accuracy_plot.setData(epochs, accuracies)
+                self.app.processEvents()
                 self.ui.tb_save_model.setEnabled(True)
                 self.ui.tb_save_model_as.setEnabled(True)
         except Exception as e:
@@ -327,22 +369,28 @@ class TrainWindow(QMainWindow):
 
     @pyqtSlot()
     def on_open_model(self):
-        fname = QFileDialog.getOpenFileName(
-            self,
-            "Открыть файл параметров обученной модели",
-            ".",
-            "Параметры обученной модели (*.mdl);; Все файлы (*.*)",
-        )
-        if fname[0]:
-            self.gestures_model = torch.load(fname[0])
-            self.model_filename = fname[0]
-            self.gestures_model.to(self.device)
-            self.ui.tb_save_model_as.setEnabled(True)
+        try:
+            fname = QFileDialog.getOpenFileName(
+                self,
+                "Открыть файл параметров обученной модели",
+                ".",
+                "Параметры обученной модели (*.mdl);; Все файлы (*.*)",
+            )
+            if fname[0]:
+                self.model_filename = fname[0]
+                model_file = open(self.model_filename, 'rb')
+                self.gestures_model = pickle.load(model_file)
+                self.gestures_model.to(self.device)
+                self.ui.tb_save_model.setEnabled(False)
+                self.ui.tb_save_model_as.setEnabled(True)
+        except Exception as e:
+            self.log(f"Ошибка открытия модели: {e}", QColor(200,0,0))
 
     @pyqtSlot()
     def on_save_model(self):
         if self.model_filename:
-            torch.save(self.gestures_model, self.model_filename)
+            model_file = open(self.model_filename, 'wb')
+            pickle.dump(self.gestures_model, model_file)
             self.ui.tb_save.setEnabled(False)
         else:
             self.on_save_model_as()
@@ -361,4 +409,8 @@ class TrainWindow(QMainWindow):
 
     @pyqtSlot()
     def on_open_labels(self):
+        pass
+
+    @pyqtSlot(str)
+    def on_epochs_changed(self, text):
         pass

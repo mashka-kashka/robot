@@ -64,6 +64,7 @@ pyqt6-plugins==6.4.2.2.3
 PyQt6-Qt6==6.4.3
 pyqt6-tools==6.4.2.3.3
 PyQt6_sip==13.8.0
+pyqtgraph==0.13.7
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
 pytz==2024.2
