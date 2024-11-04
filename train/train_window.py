@@ -132,11 +132,9 @@ class TrainWindow(QMainWindow):
             try:
                 sample = self.train_data_model.get_sample(results)
                 if sample:
-                    input = torch.tensor(sample).double().to(self.device)
-                    self.model.eval()
+                    input = torch.unsqueeze(torch.tensor(sample).double(), dim=0).to(self.device)
                     prediction = self.model(input)
-                    #prediction = F.softmax(prediction)
-                    score = max(prediction)
+                    score = max(prediction[0])
                     gesture = self.model.get_gesture(prediction)
                     gesture = self.labels_data_table_model.get_unicode_by_id(gesture)
 
@@ -336,7 +334,7 @@ class TrainWindow(QMainWindow):
 
             # Загрузчики наборов данных
             batch_size = int(self.ui.le_batch_size.text())
-            train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, )
+            train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
             val_loader = torch.utils.data.DataLoader(test_data, batch_size=batch_size, shuffle=True)
 
             # Оптимизатор
