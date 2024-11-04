@@ -1,12 +1,11 @@
 from math import isnan
 
 import numpy as np
-from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore
 from PyQt6.QtCore import Qt, QSize
 import pandas as pd
 from PyQt6.QtGui import QFont
 from PyQt6.QtWidgets import QMessageBox
-from numpy.f2py.auxfuncs import throw_error
 
 
 class LabelsDataTableModel(QtCore.QAbstractTableModel):
@@ -64,8 +63,11 @@ class LabelsDataTableModel(QtCore.QAbstractTableModel):
 
     def get_unicode_by_id(self, id):
         try:
-            df = self.data.set_index(self.ID_COLUMN)
-            value = df.loc[id][self.UNICODE_COLUMN]
+            if self.type == LabelsDataTableModel.EMOTIONS_TYPE:
+                df = self.data.set_index('Эмоция')
+            else:
+                df = self.data.set_index('Жест')
+            value = df.loc[id]['Unicode']
             if issubclass(type(value), str):
                 return value
             else:

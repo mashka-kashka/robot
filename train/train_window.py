@@ -133,7 +133,7 @@ class TrainWindow(QMainWindow):
                 sample = self.train_data_model.get_sample(results)
                 if sample:
                     input = torch.tensor(sample).double().to(self.device)
-                    #self.model.eval()
+                    self.model.eval()
                     prediction = self.model(input)
                     #prediction = F.softmax(prediction)
                     score = max(prediction)
@@ -147,6 +147,7 @@ class TrainWindow(QMainWindow):
                     #if score > 0.7:
                     painter.setFont(self.emoji_font)
                     painter.drawText(QPoint(5, 100), f"{gesture}")
+                    painter.end()
             except Exception as e:
                 print(e)
 
