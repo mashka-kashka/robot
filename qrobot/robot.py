@@ -1,6 +1,6 @@
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QPoint
-import mediapipe as mp
 from PyQt6.QtGui import QFont, QImage, QPainter
+import mediapipe as mp
 from mediapipe import solutions
 from mediapipe.framework.formats import landmark_pb2
 from mediapipe.tasks import python
@@ -13,7 +13,7 @@ class QRobot(QObject):
 
     def __init__(self):
         super().__init__()
-        _base_options = python.BaseOptions(model_asset_path='models/face_landmarker.task')
+        _base_options = python.BaseOptions(model_asset_path='../models/face_landmarker.task')
         _options = vision.FaceLandmarkerOptions(base_options=_base_options,
                                               output_face_blendshapes=True,
                                               output_facial_transformation_matrixes=True,

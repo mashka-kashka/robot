@@ -8,27 +8,40 @@ import pandas as pd
 from PyQt6.QtGui import QColor, QPixmap, QPainter, QPen
 from PyQt6.QtWidgets import QMessageBox
 from google.protobuf.json_format import MessageToDict
+from mediapipe.python.solutions.face_mesh import FACEMESH_NUM_LANDMARKS_WITH_IRISES
+from mediapipe.python.solutions.face_mesh_connections import FACEMESH_CONTOURS
+from mediapipe.python.solutions.face_mesh_connections import FACEMESH_FACE_OVAL
+from mediapipe.python.solutions.face_mesh_connections import FACEMESH_IRISES
+from mediapipe.python.solutions.face_mesh_connections import FACEMESH_LEFT_EYE
+from mediapipe.python.solutions.face_mesh_connections import FACEMESH_LEFT_EYEBROW
+from mediapipe.python.solutions.face_mesh_connections import FACEMESH_LEFT_IRIS
+from mediapipe.python.solutions.face_mesh_connections import FACEMESH_LIPS
+from mediapipe.python.solutions.face_mesh_connections import FACEMESH_NOSE
+from mediapipe.python.solutions.face_mesh_connections import FACEMESH_RIGHT_EYE
+from mediapipe.python.solutions.face_mesh_connections import FACEMESH_RIGHT_EYEBROW
+from mediapipe.python.solutions.face_mesh_connections import FACEMESH_RIGHT_IRIS
+from mediapipe.python.solutions.face_mesh_connections import FACEMESH_TESSELATION
 
 
 class TrainDataTableModel(QtCore.QAbstractTableModel):
-    GESTURE=0
+    ID_COLUMN = 0
+
+    GESTURES_TYPE = 0
+    EMOTIONS_TYPE = 1
+
     modified = False
     file_name = ''
     white_color = QColor(255, 255, 255)
-    landmarks = ['WRIST', 'THUMB_CMC', 'THUMB_MCP', 'THUMB_IP', 'THUMB_TIP', 'INDEX_FINGER_MCP', 'INDEX_FINGER_PIP',
-                  'INDEX_FINGER_DIP', 'INDEX_FINGER_TIP', 'MIDDLE_FINGER_MCP', 'MIDDLE_FINGER_PIP', 'MIDDLE_FINGER_DIP',
-                  'MIDDLE_FINGER_TIP', 'RING_FINGER_MCP', 'RING_FINGER_PIP', 'RING_FINGER_DIP', 'RING_FINGER_TIP',
-                  'PINKY_MCP', 'PINKY_PIP', 'PINKY_DIP', 'PINKY_TIP']
 
     def __init__(self):
         super(TrainDataTableModel, self).__init__()
-        self.create()
         self.red_pen = QPen()
         self.red_pen.setWidth(1)
         self.red_pen.setColor(QColor(200, 0, 0))
         self.green_pen = QPen()
         self.green_pen.setWidth(1)
         self.green_pen.setColor(QColor(0, 200, 0))
+        self.df = pd.DataFrame()
 
     def setData(self, index, value, role):
         if not index.isValid():
@@ -94,15 +107,34 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
     def get_file_name(self):
         return  self.file_name
 
-    def create(self):
-        _data = {
-                "Жест": pd.Series([], dtype=np.dtype("int8")),
-                "Уверенность": pd.Series([], dtype=np.float64), # confidence
-               }
+    def create(self, type):
+        if type == self.GESTURES_TYPE:
+            self.type = type
+            _data = {
+                    "Жест": pd.Series([], dtype=np.dtype("int8")),
+                    "Уверенность": pd.Series([], dtype=np.float64), # confidence
+                   }
 
-        for i,landmark in enumerate(self.landmarks):
-            for axis in ['X_', 'Y_', 'Z_']:
-                _data[axis+landmark] = pd.Series([], dtype=np.float64)
+            self.landmarks = ['WRIST', 'THUMB_CMC', 'THUMB_MCP', 'THUMB_IP', 'THUMB_TIP', 'INDEX_FINGER_MCP', 'INDEX_FINGER_PIP',
+                  'INDEX_FINGER_DIP', 'INDEX_FINGER_TIP', 'MIDDLE_FINGER_MCP', 'MIDDLE_FINGER_PIP', 'MIDDLE_FINGER_DIP',
+                  'MIDDLE_FINGER_TIP', 'RING_FINGER_MCP', 'RING_FINGER_PIP', 'RING_FINGER_DIP', 'RING_FINGER_TIP',
+                  'PINKY_MCP', 'PINKY_PIP', 'PINKY_DIP', 'PINKY_TIP']
+            for i, landmark in enumerate(self.landmarks):
+                for axis in ['X_', 'Y_', 'Z_']:
+                    _data[axis + landmark] = pd.Series([], dtype=np.float64)
+        elif type == self.EMOTIONS_TYPE:
+            self.type = type
+            _data = {
+                    "Эмоция": pd.Series([], dtype=np.dtype("int8")),
+                    "Уверенность": pd.Series([], dtype=np.float64), # confidence
+                   }
+
+            self.landmarks = []
+            for i in range(FACEMESH_NUM_LANDMARKS_WITH_IRISES):
+                for axis in ['X_', 'Y_', 'Z_']:
+                    _data[axis + str(i)] = pd.Series([], dtype=np.float64)
+        else:
+            return
 
         self.df = pd.DataFrame(_data)
         self.modified = False
@@ -153,13 +185,14 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
         return None
 
     def add(self, sample_id, hand_results):
-        sample = self.get_sample(hand_results)
-        sample.insert(0, sample_id)
-        if not sample:
-            return
-        self.df = pd.concat([self.df, pd.DataFrame([sample], columns=self.df.columns)], ignore_index=True)
-        self.modified = True
-        self.modelReset.emit()
+        if hand_results.multi_hand_landmarks:
+            sample = self.get_sample(hand_results)
+            sample.insert(0, sample_id)
+            if not sample:
+                return
+            self.df = pd.concat([self.df, pd.DataFrame([sample], columns=self.df.columns)], ignore_index=True)
+            self.modified = True
+            self.modelReset.emit()
 
     def centering(self):
         self.df.reset_index(inplace=True)

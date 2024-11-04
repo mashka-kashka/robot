@@ -5,21 +5,31 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtCore import Qt, QSize
 import pandas as pd
 from PyQt6.QtGui import QFont
+from PyQt6.QtWidgets import QMessageBox
+from numpy.f2py.auxfuncs import throw_error
 
 
-class GesturesTableModel(QtCore.QAbstractTableModel):
+class LabelsDataTableModel(QtCore.QAbstractTableModel):
     ID_COLUMN = 0
+    IMAGE_COLUMN = 1
     UNICODE_COLUMN = 2
     NAME_COLUMN = 3
 
+    GESTURES_TYPE = 0
+    EMOTIONS_TYPE = 1
+
     def __init__(self):
-        super(GesturesTableModel, self).__init__()
-        self.data = pd.read_csv('gestures.csv')
+        super(LabelsDataTableModel, self).__init__()
         self.noto_font = QFont("Noto Color Emoji", 20)
+        self.data = None
+        self.type = -1
+
+    def get_type(self):
+        return self.type
 
     def data(self, index, role):
         if role == Qt.ItemDataRole.UserRole:
-            return self.data.iloc[index.row(), GesturesTableModel.ID_COLUMN]
+            return self.data.iloc[index.row(), LabelsDataTableModel.ID_COLUMN]
         elif role == Qt.ItemDataRole.DisplayRole:
             value = self.data.iloc[index.row(), index.column()]
             if value is np.nan:
@@ -54,8 +64,8 @@ class GesturesTableModel(QtCore.QAbstractTableModel):
 
     def get_unicode_by_id(self, id):
         try:
-            df = self.data.set_index(['id'])
-            value = df.loc[id]['Unicode']
+            df = self.data.set_index(self.ID_COLUMN)
+            value = df.loc[id][self.UNICODE_COLUMN]
             if issubclass(type(value), str):
                 return value
             else:
@@ -63,3 +73,31 @@ class GesturesTableModel(QtCore.QAbstractTableModel):
         except Exception as e:
             print(e)
             return None
+
+    def open(self, filename):
+        try:
+            df = pd.read_csv(filename)
+            if len(df.columns) == 4:
+                if df.columns[self.ID_COLUMN] == "Жест":
+                    self.type = self.GESTURES_TYPE
+                elif df.columns[self.ID_COLUMN] == "Эмоция":
+                    self.type = self.EMOTIONS_TYPE
+                else:
+                    raise Exception("Неподдерживаемый тип меток")
+                self.data = df
+                self.file_name = filename
+                self.modified = False
+                self.modelReset.emit()
+                return True
+            else:
+                raise Exception("Недопустимый формат файла")
+        except Exception as e:
+            dlg = QMessageBox()
+            dlg.setWindowTitle("Невозможно загрузить метки!")
+            dlg.setText(f"{e}")
+            dlg.setStandardButtons(
+                QMessageBox.StandardButton.Ok
+            )
+            dlg.setIcon(QMessageBox.Icon.Critical)
+            button = dlg.exec()
+            return False

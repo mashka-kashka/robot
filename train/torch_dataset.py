@@ -1,7 +1,7 @@
 import torch.utils.data
 
 
-class GesturesDataset(torch.utils.data.Dataset):
+class TorchDataset(torch.utils.data.Dataset):
     def __init__(self, X, y):
         self.X = X
         self.y = y

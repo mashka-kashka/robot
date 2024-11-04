@@ -2,7 +2,7 @@ from operator import lshift
 from random import sample
 from random import sample
 from time import time, localtime, strftime
-from PyQt6.QtGui import QTextFormat, QColor, QTextCursor, QPixmap, QIcon, QPainter, QFont
+from PyQt6.QtGui import QTextFormat, QColor, QTextCursor, QPixmap, QIcon, QPainter, QFont, QImage
 from PyQt6.QtWidgets import (QMainWindow, QGraphicsView, QGraphicsScene, QGraphicsPixmapItem, QFileDialog, QMessageBox,
                              QVBoxLayout)
 from PyQt6.QtCore import pyqtSignal, Qt, pyqtSlot, QModelIndex, QPoint
@@ -11,9 +11,9 @@ from sklearn.model_selection import train_test_split
 from tensorflow.python.ops.metrics_impl import accuracy
 from torch import layout
 
-from train.gestures_dataset import GesturesDataset
+from train.torch_dataset import TorchDataset
 from train.gestures_model import GesturesNet
-from train.gestures_table_model import GesturesTableModel
+from train.labels_data_table_model import LabelsDataTableModel
 from train.train_data_table_model import TrainDataTableModel
 from train_window_ui import Ui_TrainWindow
 import pickle
@@ -26,6 +26,11 @@ import pyqtgraph as pg
 
 class TrainWindow(QMainWindow):
     TRAIN_TAB=2
+
+    DEFAULT_MODE = 0
+    GESTURES_MODE = 1
+    EMOTIONS_MODE = 2
+
     label_font = QFont("Times", 20)
     emoji_font = QFont("Noto Color Emoji", 64)
     model_filename = ''
@@ -34,14 +39,15 @@ class TrainWindow(QMainWindow):
         super().__init__()
 
         self.app = app
+        self.mode = self.DEFAULT_MODE
 
         # Интерфейс
         self.ui = Ui_TrainWindow()
         self.ui.setupUi(self)
 
-        self.palm_pixmap = None
-        self.palm_scene = QGraphicsScene()
-        self.ui.gv_palm.setScene(self.palm_scene)
+        self.pixmap = None
+        self.input_scene = QGraphicsScene()
+        self.ui.gv_input.setScene(self.input_scene)
         self.classification_scene = QGraphicsScene()
         self.ui.gv_classification.setScene(self.classification_scene)
 
@@ -64,11 +70,8 @@ class TrainWindow(QMainWindow):
 
         self.logger = self.ui.teLog
 
-        # Модель списка жестов
-        self.gestures_data_model = GesturesTableModel()
-        self.ui.tv_gestures.setModel(self.gestures_data_model)
-        self.ui.cb_gestures.setModel(self.gestures_data_model)
-        self.ui.cb_gestures.setModelColumn(GesturesTableModel.UNICODE_COLUMN)
+        # Модель таблицы данных для меток
+        self.labels_data_table_model = LabelsDataTableModel()
 
         # Модель таблицы данных для обучения
         self.train_data_model = TrainDataTableModel()
@@ -76,19 +79,53 @@ class TrainWindow(QMainWindow):
         self.train_data_model.dataChanged.connect(self.on_data_changed)
         self.train_data_model.modelReset.connect(self.on_data_changed)
 
-        # Нейронная сеть для распознавания жестов
         if torch.cuda.is_available():
             self.device = torch.device("cuda")
         else:
             self.device = torch.device("cpu")
 
+        # Нейронная сеть для распознавания жестов
         self.gestures_model = None
+
+    def get_mode(self):
+        return self.mode
 
     def is_palm_visible(self):
         return not self.ui.gv_palm.visibleRegion().isEmpty()
 
     @pyqtSlot(object)
-    def show_palm(self, image, results):
+    def show_face(self, frame, results):
+        image = QImage(
+            frame.data,
+            frame.shape[1],
+            frame.shape[0],
+            QImage.Format.Format_BGR888,
+        )
+
+        pixmap = QPixmap.fromImage(image)
+
+        if self.pixmap is None:
+            self.pixmap = QGraphicsPixmapItem(pixmap)
+            self.pixmap.setZValue(0)
+        else:
+            self.pixmap.setPixmap(pixmap)
+
+        # Активна вкладка "Данные"
+        if self.ui.tabData.isVisible():
+            if len(self.input_scene.items()) == 0:
+                self.input_scene.addItem(self.pixmap)
+            self.ui.gv_input.fitInView(self.input_scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+            self.ui.gv_input.show()
+
+    @pyqtSlot(object)
+    def show_palm(self, frame, results):
+        image = QImage(
+            frame.data,
+            frame.shape[1],
+            frame.shape[0],
+            QImage.Format.Format_BGR888,
+        )
+
         # Активна вкладка "Распознавание"
         if self.gestures_model and self.ui.tabClassification.isVisible():
             try:
@@ -100,7 +137,7 @@ class TrainWindow(QMainWindow):
                     #prediction = F.softmax(prediction)
                     score = max(prediction)
                     gesture = self.gestures_model.get_gesture(prediction)
-                    gesture = self.gestures_data_model.get_unicode_by_id(gesture)
+                    gesture = self.labels_data_table_model.get_unicode_by_id(gesture)
 
                     painter = QPainter(image)
                     painter.setPen(QColor(255, 255, 255))
@@ -114,46 +151,25 @@ class TrainWindow(QMainWindow):
 
         _pixmap = QPixmap.fromImage(image)
 
-        if self.palm_pixmap is None:
-            self.palm_pixmap = QGraphicsPixmapItem(_pixmap)
-            self.palm_pixmap.setZValue(0)
+        if self.pixmap is None:
+            self.pixmap = QGraphicsPixmapItem(_pixmap)
+            self.pixmap.setZValue(0)
         else:
-            self.palm_pixmap.setPixmap(_pixmap)
+            self.pixmap.setPixmap(_pixmap)
 
         # Активнка вкладка "Распознавание"
         if self.ui.tabClassification.isVisible():
             if len(self.classification_scene.items()) == 0:
-                self.classification_scene.addItem(self.palm_pixmap)
+                self.classification_scene.addItem(self.pixmap)
             self.ui.gv_classification.fitInView(self.classification_scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
             self.ui.gv_classification.show()
 
         # Активна вкладка "Данные"
         elif self.ui.tabData.isVisible():
-            # if results.multi_handedness:
-            #     handedness_dict = MessageToDict(self.hand_results.multi_handedness[0])
-            #     classification = handedness_dict['classification'][0]
-            #     painter = QPainter(image)
-            #     painter.setPen(QColor(255, 255, 255))
-            #     painter.setFont(self.label_font)
-            #     painter.drawText(QPoint(5, 25), f"Уверенность: {classification['score']}")
-            #     hand = classification['label']
-            #     if hand == "Left":
-            #         hand = "Правая"  # Зеркальное искажение
-            #     else:
-            #         hand = "Левая"
-            #     painter.drawText(QPoint(5, 55), hand)
-            #     painter.drawText(QPoint(5, 85), f"X: {min_x:.2f} {max_x:.2f}")
-            #     painter.drawText(QPoint(5, 115), f"Y: {min_y:.2f} {max_y:.2f}")
-            #     painter.drawText(QPoint(5, 145), f"Z: {min_z:.2f} {max_z:.2f}")
-            #
-            #     # painter.setFont(self.emoji_font)
-            #     # painter.drawText(QPoint(5, 140), "👍")
-            #
-            #     painter.end()
-            if len(self.palm_scene.items()) == 0:
-                self.palm_scene.addItem(self.palm_pixmap)
-            self.ui.gv_palm.fitInView(self.palm_scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
-            self.ui.gv_palm.show()
+            if len(self.input_scene.items()) == 0:
+                self.input_scene.addItem(self.pixmap)
+            self.ui.gv_input.fitInView(self.input_scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+            self.ui.gv_input.show()
 
     def log(self, message, color):
         fmt = QTextFormat()
@@ -182,7 +198,7 @@ class TrainWindow(QMainWindow):
             if button == QMessageBox.StandardButton.Yes:
                 self.log("TODO: Сохранение изменённых данных", QColor(255,0,0))
 
-        self.train_data_model.create()
+        self.train_data_model.create(self.labels_data_table_model.get_type())
 
     @pyqtSlot()
     def on_open_data(self):
@@ -229,9 +245,9 @@ class TrainWindow(QMainWindow):
         idx = sample_index.siblingAtColumn(self.train_data_model.GESTURE)
         gesture_index = int(self.train_data_model.data(idx, Qt.ItemDataRole.DisplayRole))
         if self.ui.cb_gestures.currentIndex() > 0:
-            dlg.setText(f"Заменить жест {self.gestures_data_model.get_unicode(gesture_index) or ''} на {self.ui.cb_gestures.currentText()}?")
+            dlg.setText(f"Заменить жест {self.labels_data_table_model.get_unicode(gesture_index) or ''} на {self.ui.cb_gestures.currentText()}?")
         else:
-            dlg.setText(f"Заменить жест {self.gestures_data_model.get_unicode(gesture_index) or ''} на неопределённый?")
+            dlg.setText(f"Заменить жест {self.labels_data_table_model.get_unicode(gesture_index) or ''} на неопределённый?")
         dlg.setStandardButtons(
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
@@ -254,7 +270,7 @@ class TrainWindow(QMainWindow):
         gesture_index = int(self.train_data_model.data(idx, Qt.ItemDataRole.DisplayRole))
         if self.ui.cb_gestures.currentIndex() > 0:
             dlg.setText(
-                f"Вы действительно хотите удалить жест {self.gestures_data_model.get_unicode(gesture_index) or ''}?")
+                f"Вы действительно хотите удалить жест {self.labels_data_table_model.get_unicode(gesture_index) or ''}?")
         else:
             dlg.setText(f"Вы действительно хотите удалить неопределённый жест?")
         dlg.setStandardButtons(
@@ -293,8 +309,8 @@ class TrainWindow(QMainWindow):
                 X, y, test_size=test_size, random_state=42, shuffle=True)
 
             # Наборы обучающих и тестовых данных
-            train_data = GesturesDataset(X_train, y_train)
-            test_data = GesturesDataset(X_test, y_test)
+            train_data = TorchDataset(X_train, y_train)
+            test_data = TorchDataset(X_test, y_test)
 
             # Загрузчики наборов данных
             batch_size = int(self.ui.le_batch_size.text())
@@ -409,7 +425,22 @@ class TrainWindow(QMainWindow):
 
     @pyqtSlot()
     def on_open_labels(self):
-        pass
+        fname = QFileDialog.getOpenFileName(
+            self,
+            "Открыть файл с описанием меток",
+            ".",
+            "Текст CSV (*.csv);; Все файлы (*.*)",
+        )
+        if fname[0]:
+            if self.labels_data_table_model.open(fname[0]):
+                if self.labels_data_table_model.get_type() == LabelsDataTableModel.GESTURES_TYPE:
+                    self.mode = TrainWindow.GESTURES_MODE
+                else:
+                    self.mode = TrainWindow.EMOTIONS_MODE
+                self.ui.tv_labels.setModel(self.labels_data_table_model)
+                self.ui.cb_labels.setModel(self.labels_data_table_model)
+                self.ui.cb_labels.setModelColumn(LabelsDataTableModel.UNICODE_COLUMN)
+                self.train_data_model.create(self.labels_data_table_model.get_type())
 
     @pyqtSlot(str)
     def on_epochs_changed(self, text):

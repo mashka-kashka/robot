@@ -1,11 +1,15 @@
-import numpy
 from PyQt6.QtCore import pyqtSlot, QThread, pyqtSignal
-from PyQt6.QtGui import QColor, QImage
+from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import QApplication
 from train.train_window import TrainWindow
 from train.robocamera import RoboCamera
+import mediapipe as mp
+from mediapipe.tasks import python
+from mediapipe.tasks.python import vision
+from mediapipe import solutions
 from mediapipe.python.solutions import drawing_utils as mp_drawing
 from mediapipe.python.solutions import hands as mp_hand_detector
+from mediapipe.framework.formats import landmark_pb2
 import toml
 import sys
 
@@ -24,11 +28,20 @@ class TrainApp(QApplication):
         self.log_info(f"Начало работы")
 
         # Модуль распознавания ладони на изображении
-        self.hand_detector = hand_detector = mp_hand_detector.Hands(
+        self.hand_detector = mp_hand_detector.Hands(
             static_image_mode=False,
             min_detection_confidence=0.7,
             min_tracking_confidence=0.7,
             max_num_hands=1)
+
+        # Модуль распознавания лиц на изображении
+        base_options = python.BaseOptions(model_asset_path='../models/face_landmarker.task')
+        options = vision.FaceLandmarkerOptions(base_options=base_options,
+                                              output_face_blendshapes=True,
+                                              output_facial_transformation_matrixes=True,
+                                              num_faces=1)
+
+        self.face_detector = vision.FaceLandmarker.create_from_options(options)
 
         with open('config.toml', 'r') as f:
             self.config = toml.load(f)
@@ -60,19 +73,53 @@ class TrainApp(QApplication):
 
     @pyqtSlot(object)
     def frame_captured(self, frame):
-        self.hand_results = self.hand_detector.process(frame)
-        if self.hand_results.multi_hand_landmarks:
-            for handLandmark in self.hand_results.multi_hand_landmarks:
-                mp_drawing.draw_landmarks(frame, handLandmark,
-                                          mp_hand_detector.HAND_CONNECTIONS)
-        image = QImage(
-            frame.data,
-            frame.shape[1],
-            frame.shape[0],
-            QImage.Format.Format_BGR888,
-        )
+        mode = self.window.get_mode()
+        if mode == TrainWindow.EMOTIONS_MODE:
+            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame
+                                )
+            self.face_results = self.face_detector.detect(mp_image)
+            if self.face_results.face_landmarks:
+                for idx in range(len(self.face_results.face_landmarks)):
+                    face_landmarks = self.face_results.face_landmarks[idx]
 
-        self.window.show_palm(image, self.hand_results)
+                    # Draw the face landmarks.
+                    face_landmarks_proto = landmark_pb2.NormalizedLandmarkList()
+                    face_landmarks_proto.landmark.extend([
+                        landmark_pb2.NormalizedLandmark(x=landmark.x, y=landmark.y, z=landmark.z) for landmark in
+                        face_landmarks
+                    ])
+
+                    # solutions.drawing_utils.draw_landmarks(
+                    #     image=frame,
+                    #     landmark_list=face_landmarks_proto,
+                    #     connections=mp.solutions.face_mesh.FACEMESH_TESSELATION,
+                    #     landmark_drawing_spec=None,
+                    #     connection_drawing_spec=mp.solutions.drawing_styles
+                    #     .get_default_face_mesh_tesselation_style())
+                    solutions.drawing_utils.draw_landmarks(
+                        image=frame,
+                        landmark_list=face_landmarks_proto,
+                        connections=mp.solutions.face_mesh.FACEMESH_CONTOURS,
+                        landmark_drawing_spec=None,
+                        connection_drawing_spec=mp.solutions.drawing_styles
+                        .get_default_face_mesh_contours_style())
+                    solutions.drawing_utils.draw_landmarks(
+                        image=frame,
+                        landmark_list=face_landmarks_proto,
+                        connections=mp.solutions.face_mesh.FACEMESH_IRISES,
+                        landmark_drawing_spec=None,
+                        connection_drawing_spec=mp.solutions.drawing_styles
+                        .get_default_face_mesh_iris_connections_style())
+            self.window.show_face(frame, self.face_results)
+
+        elif mode == TrainWindow.GESTURES_MODE:
+            self.hand_results = self.hand_detector.process(frame)
+            if self.hand_results.multi_hand_landmarks:
+                for handLandmark in self.hand_results.multi_hand_landmarks:
+                    mp_drawing.draw_landmarks(frame, handLandmark,
+                                              mp_hand_detector.HAND_CONNECTIONS)
+            self.window.show_palm(frame, self.hand_results)
+
         self.get_next_frame.emit()
 
     @pyqtSlot(object)

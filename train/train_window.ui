@@ -53,7 +53,7 @@
         </size>
        </property>
        <property name="currentIndex">
-        <number>1</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="tabLabels">
         <attribute name="icon">
@@ -69,6 +69,23 @@
            <property name="spacing">
             <number>3</number>
            </property>
+           <item>
+            <widget class="QToolButton" name="tb_new_labels">
+             <property name="enabled">
+              <bool>false</bool>
+             </property>
+             <property name="text">
+              <string>Создать</string>
+             </property>
+             <property name="icon">
+              <iconset>
+               <normaloff>icons/star.png</normaloff>icons/star.png</iconset>
+             </property>
+             <property name="toolButtonStyle">
+              <enum>Qt::ToolButtonTextBesideIcon</enum>
+             </property>
+            </widget>
+           </item>
            <item>
             <widget class="QToolButton" name="tb_open_labels">
              <property name="enabled">
@@ -170,7 +187,7 @@
           </layout>
          </item>
          <item row="1" column="0">
-          <widget class="QTableView" name="tv_gestures">
+          <widget class="QTableView" name="tv_labels">
            <property name="styleSheet">
             <string notr="true"/>
            </property>
@@ -213,7 +230,7 @@
           </widget>
          </item>
          <item row="2" column="0">
-          <widget class="QGraphicsView" name="gv_palm"/>
+          <widget class="QGraphicsView" name="gv_input"/>
          </item>
          <item row="0" column="0" colspan="3">
           <layout class="QHBoxLayout" name="horizontalLayout_4">
@@ -280,7 +297,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QComboBox" name="cb_gestures">
+            <widget class="QComboBox" name="cb_labels">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                <horstretch>0</horstretch>
@@ -657,14 +674,14 @@
   <tabstop>tb_add</tabstop>
   <tabstop>toolButton</tabstop>
   <tabstop>tb_edit</tabstop>
-  <tabstop>tv_gestures</tabstop>
+  <tabstop>tv_labels</tabstop>
   <tabstop>tv_data</tabstop>
-  <tabstop>gv_palm</tabstop>
+  <tabstop>gv_input</tabstop>
   <tabstop>tb_new_data</tabstop>
   <tabstop>tb_open_data</tabstop>
   <tabstop>tb_save_data</tabstop>
   <tabstop>tb_save_data_as</tabstop>
-  <tabstop>cb_gestures</tabstop>
+  <tabstop>cb_labels</tabstop>
   <tabstop>tb_add_sample</tabstop>
   <tabstop>tb_edit_sample</tabstop>
   <tabstop>tb_delete_sample</tabstop>
