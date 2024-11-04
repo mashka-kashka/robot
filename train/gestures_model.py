@@ -1,7 +1,8 @@
-import torch
+from ast import Index
+
 from torch import nn
 import torch.nn.functional as F
-from PyQt6.QtWidgets import QMessageBox
+
 
 class GesturesNet(nn.Module):
 
@@ -20,4 +21,8 @@ class GesturesNet(nn.Module):
         return x
 
     def get_gesture(self, prediction):
-        return self.labels[prediction.argmax()]
+        try:
+            res = prediction.argmax()
+            return self.labels[res]
+        except IndexError:
+            return 0

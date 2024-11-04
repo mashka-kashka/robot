@@ -11,6 +11,7 @@ from sklearn.model_selection import train_test_split
 from tensorflow.python.ops.metrics_impl import accuracy
 from torch import layout
 
+from train.emotions_model import EmotionsNet
 from train.torch_dataset import TorchDataset
 from train.gestures_model import GesturesNet
 from train.labels_data_table_model import LabelsDataTableModel
@@ -84,8 +85,8 @@ class TrainWindow(QMainWindow):
         else:
             self.device = torch.device("cpu")
 
-        # Нейронная сеть для распознавания жестов
-        self.gestures_model = None
+        # Нейронная сеть
+        self.model = None
 
     def get_mode(self):
         return self.mode
@@ -127,16 +128,16 @@ class TrainWindow(QMainWindow):
         )
 
         # Активна вкладка "Распознавание"
-        if self.gestures_model and self.ui.tabClassification.isVisible():
+        if self.model and self.ui.tabClassification.isVisible():
             try:
                 sample = self.train_data_model.get_sample(results)
                 if sample:
                     input = torch.tensor(sample).double().to(self.device)
-                    self.gestures_model.eval()
-                    prediction = self.gestures_model(input)
+                    #self.model.eval()
+                    prediction = self.model(input)
                     #prediction = F.softmax(prediction)
                     score = max(prediction)
-                    gesture = self.gestures_model.get_gesture(prediction)
+                    gesture = self.model.get_gesture(prediction)
                     gesture = self.labels_data_table_model.get_unicode_by_id(gesture)
 
                     painter = QPainter(image)
@@ -157,7 +158,7 @@ class TrainWindow(QMainWindow):
         else:
             self.pixmap.setPixmap(_pixmap)
 
-        # Активнка вкладка "Распознавание"
+        # Активна вкладка "Распознавание"
         if self.ui.tabClassification.isVisible():
             if len(self.classification_scene.items()) == 0:
                 self.classification_scene.addItem(self.pixmap)
@@ -180,8 +181,11 @@ class TrainWindow(QMainWindow):
 
     @pyqtSlot()
     def on_add_sample(self):
-        sample_index = self.ui.cb_gestures.currentData(Qt.ItemDataRole.UserRole)
-        self.train_data_model.add(sample_index, self.app.hand_results)
+        sample_index = self.ui.cb_labels.currentData(Qt.ItemDataRole.UserRole)
+        if self.mode == TrainWindow.GESTURES_MODE:
+            self.train_data_model.add(sample_index, self.app.hand_results)
+        else:
+            self.train_data_model.add(sample_index, self.app.face_results)
 
     @pyqtSlot()
     def on_new_data(self):
@@ -241,22 +245,35 @@ class TrainWindow(QMainWindow):
         if not sample_index.isValid():
             return
         dlg = QMessageBox(self)
-        dlg.setWindowTitle("Изменение жеста")
-        idx = sample_index.siblingAtColumn(self.train_data_model.GESTURE)
-        gesture_index = int(self.train_data_model.data(idx, Qt.ItemDataRole.DisplayRole))
-        if self.ui.cb_gestures.currentIndex() > 0:
-            dlg.setText(f"Заменить жест {self.labels_data_table_model.get_unicode(gesture_index) or ''} на {self.ui.cb_gestures.currentText()}?")
+        if self.mode == TrainWindow.EMOTIONS_MODE:
+            dlg.setWindowTitle("Изменение эмоции")
         else:
-            dlg.setText(f"Заменить жест {self.labels_data_table_model.get_unicode(gesture_index) or ''} на неопределённый?")
+            dlg.setWindowTitle("Изменение жеста")
+        idx = sample_index.siblingAtColumn(TrainDataTableModel.ID_COLUMN)
+        index = int(self.train_data_model.data(idx, Qt.ItemDataRole.DisplayRole))
+        dlg.setStyleSheet('font: "Noto Color Emoji";')
+        if self.mode == TrainWindow.EMOTIONS_MODE:
+            if self.ui.cb_labels.currentIndex() > 0:
+                dlg.setText(f"Заменить эмоцию {self.labels_data_table_model.get_unicode(index) or ''} на {self.ui.cb_labels.currentText()}?")
+            else:
+                dlg.setText(f"Заменить эмоцию {self.labels_data_table_model.get_unicode(index) or ''} на неопределённую?")
+        else:
+            if self.ui.cb_labels.currentIndex() > 0:
+                dlg.setText(f"Заменить жест {self.labels_data_table_model.get_unicode(index) or ''} на {self.ui.cb_labels.currentText()}?")
+            else:
+                dlg.setText(f"Заменить жест {self.labels_data_table_model.get_unicode(index) or ''} на неопределённый?")
         dlg.setStandardButtons(
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
         )
-        dlg.setStyleSheet('font: "Noto Color Emoji";')
-        dlg.setIconPixmap(self.train_data_model.draw_palm(sample_index.row(), 100))
+
+        if self.mode == TrainWindow.EMOTIONS_MODE:
+            dlg.setIconPixmap(self.train_data_model.draw_face(sample_index.row(), 100))
+        else:
+            dlg.setIconPixmap(self.train_data_model.draw_palm(sample_index.row(), 100))
         button = dlg.exec()
 
         if button == QMessageBox.StandardButton.Yes:
-            self.train_data_model.setData(idx, self.ui.cb_gestures.currentIndex(), Qt.ItemDataRole.EditRole)
+            self.train_data_model.setData(idx, self.ui.cb_labels.currentIndex(), Qt.ItemDataRole.EditRole)
             self.train_data_model.dataChanged.emit(idx,idx)
 
     @pyqtSlot()
@@ -268,7 +285,7 @@ class TrainWindow(QMainWindow):
         dlg.setWindowTitle("Удаление жеста")
         idx = sample_index.siblingAtColumn(self.train_data_model.GESTURE)
         gesture_index = int(self.train_data_model.data(idx, Qt.ItemDataRole.DisplayRole))
-        if self.ui.cb_gestures.currentIndex() > 0:
+        if self.ui.cb_labels.currentIndex() > 0:
             dlg.setText(
                 f"Вы действительно хотите удалить жест {self.labels_data_table_model.get_unicode(gesture_index) or ''}?")
         else:
@@ -297,9 +314,13 @@ class TrainWindow(QMainWindow):
         try:
             y_range = 1.0
 
-            labels = self.train_data_model.get_gestures_ids()
-            if not self.gestures_model or not all(x == y for x, y in zip(labels, self.gestures_model.labels)):
-                self.gestures_model = GesturesNet(labels).to(self.device)
+            labels = self.train_data_model.get_labels()
+
+            if not self.model or not all(x == y for x, y in zip(labels, self.model.labels)):
+                if self.mode == TrainWindow.EMOTIONS_MODE:
+                    self.model = EmotionsNet(labels).to(self.device)
+                else:
+                    self.model = GesturesNet(labels).to(self.device)
 
             # Разделение полного набора данных на обучающий и тестовых наборы
             test_size = float(self.ui.le_test_size.text())
@@ -319,7 +340,7 @@ class TrainWindow(QMainWindow):
 
             # Оптимизатор
             learning_rate = float(self.ui.le_learning_rate.text())
-            optimizer = optim.Adam(self.gestures_model.parameters(), lr=learning_rate)
+            optimizer = optim.Adam(self.model.parameters(), lr=learning_rate)
 
             # Обучение
             loss_fn = torch.nn.CrossEntropyLoss()
@@ -332,13 +353,13 @@ class TrainWindow(QMainWindow):
                 epochs.append(epoch)
                 training_loss = 0.0
                 valid_loss = 0.0
-                self.gestures_model.train()
+                self.model.train()
                 for batch in train_loader:
                     optimizer.zero_grad()
                     inputs, targets = batch
                     inputs = inputs.to(self.device)
                     targets = targets.to(self.device)
-                    output = self.gestures_model(inputs)
+                    output = self.model(inputs)
                     loss = loss_fn(output, targets)
                     loss.backward()
                     optimizer.step()
@@ -349,13 +370,13 @@ class TrainWindow(QMainWindow):
                 if training_loss > y_range:
                     y_range = training_loss
 
-                self.gestures_model.eval()
+                self.model.eval()
                 num_correct = 0
                 num_examples = 0
                 for batch in val_loader:
                     inputs, targets = batch
                     inputs = inputs.to(self.device)
-                    output = self.gestures_model(inputs)
+                    output = self.model(inputs)
                     targets = targets.to(self.device)
                     loss = loss_fn(output, targets)
                     valid_loss += loss.data.item() * inputs.size(0)
@@ -395,8 +416,8 @@ class TrainWindow(QMainWindow):
             if fname[0]:
                 self.model_filename = fname[0]
                 model_file = open(self.model_filename, 'rb')
-                self.gestures_model = pickle.load(model_file)
-                self.gestures_model.to(self.device)
+                self.model = pickle.load(model_file)
+                self.model.to(self.device)
                 self.ui.tb_save_model.setEnabled(False)
                 self.ui.tb_save_model_as.setEnabled(True)
         except Exception as e:
@@ -406,7 +427,7 @@ class TrainWindow(QMainWindow):
     def on_save_model(self):
         if self.model_filename:
             model_file = open(self.model_filename, 'wb')
-            pickle.dump(self.gestures_model, model_file)
+            pickle.dump(self.model, model_file)
             self.ui.tb_save.setEnabled(False)
         else:
             self.on_save_model_as()

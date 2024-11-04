@@ -359,7 +359,7 @@ class Ui_TrainWindow(object):
         self.label_2.setText(_translate("TrainWindow", "Скорость обучения"))
         self.l_test_size.setText(_translate("TrainWindow", "Доля тестовых данных"))
         self.le_epochs.setInputMask(_translate("TrainWindow", "999"))
-        self.le_epochs.setText(_translate("TrainWindow", "40"))
+        self.le_epochs.setText(_translate("TrainWindow", "100"))
         self.le_batch_size.setInputMask(_translate("TrainWindow", "999"))
         self.le_batch_size.setText(_translate("TrainWindow", "1"))
         self.label.setText(_translate("TrainWindow", "Размер пакета"))

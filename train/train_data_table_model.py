@@ -8,6 +8,7 @@ import pandas as pd
 from PyQt6.QtGui import QColor, QPixmap, QPainter, QPen
 from PyQt6.QtWidgets import QMessageBox
 from google.protobuf.json_format import MessageToDict
+from mediapipe.tasks.python.vision import FaceLandmarkerResult
 from mediapipe.python.solutions.face_mesh import FACEMESH_NUM_LANDMARKS_WITH_IRISES
 from mediapipe.python.solutions.face_mesh_connections import FACEMESH_CONTOURS
 from mediapipe.python.solutions.face_mesh_connections import FACEMESH_FACE_OVAL
@@ -57,13 +58,44 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
     def data(self, index, role):
         if role == Qt.ItemDataRole.DecorationRole:
             if index.column() == 0:
-                return self.draw_palm(self.df.index[index.row()])
+                if self.type == TrainDataTableModel.EMOTIONS_TYPE:
+                    return self.draw_face(self.df.index[index.row()])
+                else:
+                    return self.draw_palm(self.df.index[index.row()])
         elif role == Qt.ItemDataRole.DisplayRole:
                 value = self.df.iloc[index.row(), index.column()]
                 if value is np.nan:
                     return ""
                 else:
                     return str(value)
+
+    def draw_face(self, row_index, size = 27):
+        pixmap = QPixmap(size, size)
+        pixmap.fill(self.white_color)
+        try:
+            row = self.df.loc[row_index, :]
+            painter = QPainter(pixmap)
+            painter.setPen(self.red_pen)
+            points = []
+            for i in range(FACEMESH_NUM_LANDMARKS_WITH_IRISES):
+                x = int(row.iloc[i * 3 + 1] * size)
+                y = int(row.iloc[i * 3 + 2] * size)
+                points.append(QPoint(x, y))
+
+            FACEMESH = frozenset().union(*[
+                FACEMESH_RIGHT_IRIS, FACEMESH_LEFT_IRIS, FACEMESH_LIPS, FACEMESH_LEFT_EYE, FACEMESH_LEFT_EYEBROW,
+                FACEMESH_RIGHT_EYE, FACEMESH_RIGHT_EYEBROW, FACEMESH_FACE_OVAL, FACEMESH_NOSE
+            ])
+
+            painter.setPen(self.green_pen)
+            for start, end in FACEMESH:
+                painter.drawLine(points[start], points[end])
+
+            painter.end()
+
+        except Exception as e:
+            pass
+        return pixmap
 
     def draw_palm(self, row_index, size = 27):
         pixmap = QPixmap(size, size)
@@ -108,12 +140,12 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
         return  self.file_name
 
     def create(self, type):
+        self.type = type
         if type == self.GESTURES_TYPE:
-            self.type = type
             _data = {
                     "Жест": pd.Series([], dtype=np.dtype("int8")),
                     "Уверенность": pd.Series([], dtype=np.float64), # confidence
-                   }
+                    }
 
             self.landmarks = ['WRIST', 'THUMB_CMC', 'THUMB_MCP', 'THUMB_IP', 'THUMB_TIP', 'INDEX_FINGER_MCP', 'INDEX_FINGER_PIP',
                   'INDEX_FINGER_DIP', 'INDEX_FINGER_TIP', 'MIDDLE_FINGER_MCP', 'MIDDLE_FINGER_PIP', 'MIDDLE_FINGER_DIP',
@@ -123,11 +155,9 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
                 for axis in ['X_', 'Y_', 'Z_']:
                     _data[axis + landmark] = pd.Series([], dtype=np.float64)
         elif type == self.EMOTIONS_TYPE:
-            self.type = type
             _data = {
                     "Эмоция": pd.Series([], dtype=np.dtype("int8")),
-                    "Уверенность": pd.Series([], dtype=np.float64), # confidence
-                   }
+                    }
 
             self.landmarks = []
             for i in range(FACEMESH_NUM_LANDMARKS_WITH_IRISES):
@@ -140,59 +170,72 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
         self.modified = False
         self.modelReset.emit()
 
-    def get_sample(self, hand_results):
-        if hand_results and hand_results.multi_hand_landmarks:
-            try:
-                score = MessageToDict(hand_results.multi_handedness[0])['classification'][0]['score']
-                sample = [score]
+    def get_sample(self, results):
+        if not results:
+            return None
 
-                min_x = None
-                min_y = None
-                min_z = None
-                max_x = None
-                max_y = None
-                max_z = None
+        try:
+            sample = []
+            if self.type == TrainDataTableModel.EMOTIONS_TYPE : # Лицо
+                if not results.face_landmarks:
+                    return None
 
-                landmark = hand_results.multi_hand_landmarks[0].landmark
-                for lm in landmark:
-                    if not min_x or lm.x < min_x:
-                        min_x = lm.x
-                    if not min_y or lm.y < min_y:
-                        min_y = lm.y
-                    if not min_z or lm.z < min_z:
-                        min_z = lm.z
-                    if not max_x or lm.x > max_x:
-                        max_x = lm.x
-                    if not max_y or lm.y > max_y:
-                        max_y = lm.y
-                    if not max_z or lm.z > max_z:
-                        max_z = lm.z
+                landmark = results.face_landmarks[0]
+            else: # Руки
+                if not results.multi_hand_landmarks:
+                    return None
 
-                dx = max_x - min_x
-                dy = max_y - min_y
-                dz = max_z - min_z
+                score = MessageToDict(results.multi_handedness[0])['classification'][0]['score']
+                sample.append(score)
+                landmark = results.multi_hand_landmarks[0].landmark
 
-                scale = max(dx, dy, dz)
+            min_x = None
+            min_y = None
+            min_z = None
+            max_x = None
+            max_y = None
+            max_z = None
 
-                for i,lm in enumerate(landmark):
-                    sample.append((lm.x - min_x - dx / 2.) / scale + 0.5)
-                    sample.append((lm.y - min_y - dy / 2.) / scale + 0.5)
-                    sample.append((lm.z - min_z - dz / 2.) / scale + 0.5)
+            for lm in landmark:
+                if not min_x or lm.x < min_x:
+                    min_x = lm.x
+                if not min_y or lm.y < min_y:
+                    min_y = lm.y
+                if not min_z or lm.z < min_z:
+                    min_z = lm.z
+                if not max_x or lm.x > max_x:
+                    max_x = lm.x
+                if not max_y or lm.y > max_y:
+                    max_y = lm.y
+                if not max_z or lm.z > max_z:
+                    max_z = lm.z
 
-                return sample
-            except Exception as e:
-                print(f"{e}")
+            dx = max_x - min_x
+            dy = max_y - min_y
+            dz = max_z - min_z
+
+            scale = max(dx, dy, dz)
+
+            for i,lm in enumerate(landmark):
+                sample.append((lm.x - min_x - dx / 2.) / scale + 0.5)
+                sample.append((lm.y - min_y - dy / 2.) / scale + 0.5)
+                sample.append((lm.z - min_z - dz / 2.) / scale + 0.5)
+
+            return sample
+        except Exception as e:
+            print(f"{e}")
         return None
 
-    def add(self, sample_id, hand_results):
-        if hand_results.multi_hand_landmarks:
-            sample = self.get_sample(hand_results)
-            sample.insert(0, sample_id)
-            if not sample:
-                return
-            self.df = pd.concat([self.df, pd.DataFrame([sample], columns=self.df.columns)], ignore_index=True)
-            self.modified = True
-            self.modelReset.emit()
+    def add(self, sample_id, results):
+        sample = self.get_sample(results)
+        if not sample:
+            return
+
+        sample.insert(0, sample_id)
+        df = pd.DataFrame([sample], columns=self.df.columns)
+        self.df = pd.concat([self.df, df], ignore_index=True)
+        self.modified = True
+        self.modelReset.emit()
 
     def centering(self):
         self.df.reset_index(inplace=True)
@@ -262,17 +305,26 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
         self.endRemoveRows()
 
     def X(self):
-        return self.df.loc[:,'Уверенность':]
+        if self.type == TrainDataTableModel.EMOTIONS_TYPE:
+            return self.df.loc[:, 'X_0':]
+        else:
+            return self.df.loc[:,'Уверенность':]
 
     def y(self):
-        gestures = self.df['Жест']
+        if self.type == TrainDataTableModel.EMOTIONS_TYPE:
+            labels = self.df['Эмоция']
+        else:
+            labels = self.df['Жест']
 
-        # Замена идентификаторов жестов на их порядковые номера
+        # Замена идентификаторов на их порядковые номера
         replacement = {}
-        for idx, gesture_id in enumerate(gestures.unique()):
-            replacement[gesture_id] = idx
+        for index, id in enumerate(labels.unique()):
+            replacement[id] = index
 
-        return gestures.replace(replacement)
+        return labels.replace(replacement)
 
-    def get_gestures_ids(self):
-        return self.df['Жест'].unique()
+    def get_labels(self):
+        if self.type == TrainDataTableModel.EMOTIONS_TYPE:
+            return self.df['Эмоция'].unique()
+        else:
+            return self.df['Жест'].unique()
