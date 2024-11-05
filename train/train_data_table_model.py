@@ -163,6 +163,21 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
             for i in range(FACEMESH_NUM_LANDMARKS_WITH_IRISES):
                 for axis in ['X_', 'Y_', 'Z_']:
                     _data[axis + str(i)] = pd.Series([], dtype=np.float64)
+
+            self.blendshapes = ['_neutral', 'browDownLeft', 'browDownRight', 'browInnerUp', 'browOuterUpLeft',
+                                'browOuterUpRight', 'cheekPuff', 'cheekSquintLeft', 'cheekSquintRight',
+                                'eyeBlinkLeft', 'eyeBlinkRight', 'eyeLookDownLeft', 'eyeLookDownRight',
+                                'eyeLookInLeft', 'eyeLookInRight', 'eyeLookOutLeft', 'eyeLookOutRight',
+                                'eyeLookUpLeft', 'eyeLookUpRight', 'eyeSquintLeft', 'eyeSquintRight',
+                                'eyeWideLeft', 'eyeWideRight', 'jawForward', 'jawLeft', 'jawOpen', 'jawRight',
+                                'mouthClose', 'mouthDimpleLeft', 'mouthDimpleRight', 'mouthFrownLeft',
+                                'mouthFrownRight', 'mouthFunnel', 'mouthLeft', 'mouthLowerDownLeft',
+                                'mouthLowerDownRight', 'mouthPressLeft', 'mouthPressRight', 'mouthPucker',
+                                'mouthRight', 'mouthRollLower', 'mouthRollUpper', 'mouthShrugLower', 'mouthShrugUpper',
+                                'mouthSmileLeft', 'mouthSmileRight', 'mouthStretchLeft', 'mouthStretchRight',
+                                'mouthUpperUpLeft', 'mouthUpperUpRight', 'noseSneerLeft', 'noseSneerRight']
+            for blendshape in self.blendshapes:
+                _data[blendshape] = pd.Series([], dtype=np.float64)
         else:
             return
 
@@ -220,6 +235,10 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
                 sample.append((lm.x - min_x - dx / 2.) / scale + 0.5)
                 sample.append((lm.y - min_y - dy / 2.) / scale + 0.5)
                 sample.append((lm.z - min_z - dz / 2.) / scale + 0.5)
+
+            if self.type == TrainDataTableModel.EMOTIONS_TYPE : # Лицо
+                for i in range(len(self.blendshapes)):
+                    sample.append(results.face_blendshapes[0][i].score)
 
             return sample
         except Exception as e:

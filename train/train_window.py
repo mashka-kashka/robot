@@ -95,30 +95,6 @@ class TrainWindow(QMainWindow):
         return not self.ui.gv_palm.visibleRegion().isEmpty()
 
     @pyqtSlot(object)
-    def show_face(self, frame, results):
-        image = QImage(
-            frame.data,
-            frame.shape[1],
-            frame.shape[0],
-            QImage.Format.Format_BGR888,
-        )
-
-        pixmap = QPixmap.fromImage(image)
-
-        if self.pixmap is None:
-            self.pixmap = QGraphicsPixmapItem(pixmap)
-            self.pixmap.setZValue(0)
-        else:
-            self.pixmap.setPixmap(pixmap)
-
-        # Активна вкладка "Данные"
-        if self.ui.tabData.isVisible():
-            if len(self.input_scene.items()) == 0:
-                self.input_scene.addItem(self.pixmap)
-            self.ui.gv_input.fitInView(self.input_scene.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
-            self.ui.gv_input.show()
-
-    @pyqtSlot(object)
     def show_frame(self, frame, results):
         image = QImage(
             frame.data,
