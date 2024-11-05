@@ -110,7 +110,7 @@ class TrainApp(QApplication):
                         landmark_drawing_spec=None,
                         connection_drawing_spec=mp.solutions.drawing_styles
                         .get_default_face_mesh_iris_connections_style())
-            self.window.show_face(frame, self.face_results)
+            self.window.show_frame(frame, self.face_results)
 
         elif mode == TrainWindow.GESTURES_MODE:
             self.hand_results = self.hand_detector.process(frame)
@@ -118,8 +118,8 @@ class TrainApp(QApplication):
                 for handLandmark in self.hand_results.multi_hand_landmarks:
                     mp_drawing.draw_landmarks(frame, handLandmark,
                                               mp_hand_detector.HAND_CONNECTIONS)
-            self.window.show_palm(frame, self.hand_results)
 
+            self.window.show_frame(frame, self.hand_results)
         self.get_next_frame.emit()
 
     @pyqtSlot(object)

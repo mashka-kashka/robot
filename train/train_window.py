@@ -119,7 +119,7 @@ class TrainWindow(QMainWindow):
             self.ui.gv_input.show()
 
     @pyqtSlot(object)
-    def show_palm(self, frame, results):
+    def show_frame(self, frame, results):
         image = QImage(
             frame.data,
             frame.shape[1],
@@ -135,8 +135,8 @@ class TrainWindow(QMainWindow):
                     input = torch.unsqueeze(torch.tensor(sample).double(), dim=0).to(self.device)
                     prediction = self.model(input)
                     score = max(prediction[0])
-                    gesture = self.model.get_gesture(prediction)
-                    gesture = self.labels_data_table_model.get_unicode_by_id(gesture)
+                    label = self.model.get_label(prediction)
+                    label = self.labels_data_table_model.get_unicode_by_id(label)
 
                     painter = QPainter(image)
                     painter.setPen(QColor(255, 255, 255))
@@ -144,7 +144,7 @@ class TrainWindow(QMainWindow):
                     painter.drawText(QPoint(5, 25), f"Уверенность: {score:.4f}")
                     #if score > 0.7:
                     painter.setFont(self.emoji_font)
-                    painter.drawText(QPoint(5, 100), f"{gesture}")
+                    painter.drawText(QPoint(5, 100), f"{label}")
                     painter.end()
             except Exception as e:
                 print(e)

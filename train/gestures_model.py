@@ -20,9 +20,8 @@ class GesturesNet(nn.Module):
         x = F.softmax(self.fc3(x), dim=1)
         return x
 
-    def get_gesture(self, prediction):
+    def get_label(self, prediction):
         try:
-            res = prediction.argmax()
-            return self.labels[res]
+            return self.labels[prediction.argmax()]
         except IndexError:
             return 0
