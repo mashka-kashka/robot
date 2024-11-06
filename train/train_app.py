@@ -89,6 +89,7 @@ class TrainApp(QApplication):
                         face_landmarks
                     ])
 
+                    # Отображение сетки лица
                     # solutions.drawing_utils.draw_landmarks(
                     #     image=frame,
                     #     landmark_list=face_landmarks_proto,
@@ -96,6 +97,8 @@ class TrainApp(QApplication):
                     #     landmark_drawing_spec=None,
                     #     connection_drawing_spec=mp.solutions.drawing_styles
                     #     .get_default_face_mesh_tesselation_style())
+
+                    # Отображение контуров лица
                     solutions.drawing_utils.draw_landmarks(
                         image=frame,
                         landmark_list=face_landmarks_proto,
@@ -103,6 +106,8 @@ class TrainApp(QApplication):
                         landmark_drawing_spec=None,
                         connection_drawing_spec=mp.solutions.drawing_styles
                         .get_default_face_mesh_contours_style())
+
+                    # Отображение зрачков
                     solutions.drawing_utils.draw_landmarks(
                         image=frame,
                         landmark_list=face_landmarks_proto,

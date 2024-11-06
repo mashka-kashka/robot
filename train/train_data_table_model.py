@@ -72,29 +72,29 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
     def draw_face(self, row_index, size = 27):
         pixmap = QPixmap(size, size)
         pixmap.fill(self.white_color)
-        # try:
-        #     row = self.df.loc[row_index, :]
-        #     painter = QPainter(pixmap)
-        #     painter.setPen(self.red_pen)
-        #     points = []
-        #     for i in range(FACEMESH_NUM_LANDMARKS_WITH_IRISES):
-        #         x = int(row.iloc[i * 3 + 1] * size)
-        #         y = int(row.iloc[i * 3 + 2] * size)
-        #         points.append(QPoint(x, y))
-        #
-        #     FACEMESH = frozenset().union(*[
-        #         FACEMESH_RIGHT_IRIS, FACEMESH_LEFT_IRIS, FACEMESH_LIPS, FACEMESH_LEFT_EYE, FACEMESH_LEFT_EYEBROW,
-        #         FACEMESH_RIGHT_EYE, FACEMESH_RIGHT_EYEBROW, FACEMESH_FACE_OVAL, FACEMESH_NOSE
-        #     ])
-        #
-        #     painter.setPen(self.green_pen)
-        #     for start, end in FACEMESH:
-        #         painter.drawLine(points[start], points[end])
-        #
-        #     painter.end()
-        #
-        # except Exception as e:
-        #     pass
+        try:
+            row = self.df.loc[row_index, :]
+            painter = QPainter(pixmap)
+            painter.setPen(self.red_pen)
+            points = []
+            for i in range(FACEMESH_NUM_LANDMARKS_WITH_IRISES):
+                x = int(row.iloc[i * 3 + 1] * size)
+                y = int(row.iloc[i * 3 + 2] * size)
+                points.append(QPoint(x, y))
+
+            FACEMESH = frozenset().union(*[
+                FACEMESH_RIGHT_IRIS, FACEMESH_LEFT_IRIS, FACEMESH_LIPS, FACEMESH_LEFT_EYE, FACEMESH_LEFT_EYEBROW,
+                FACEMESH_RIGHT_EYE, FACEMESH_RIGHT_EYEBROW, FACEMESH_FACE_OVAL, FACEMESH_NOSE
+            ])
+
+            painter.setPen(self.green_pen)
+            for start, end in FACEMESH:
+                painter.drawLine(points[start], points[end])
+
+            painter.end()
+        except Exception as e:
+            pass
+
         return pixmap
 
     def draw_palm(self, row_index, size = 27):
@@ -160,9 +160,9 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
                     }
 
             self.landmarks = []
-            # for i in range(FACEMESH_NUM_LANDMARKS_WITH_IRISES):
-            #     for axis in ['X_', 'Y_', 'Z_']:
-            #         _data[axis + str(i)] = pd.Series([], dtype=np.float64)
+            for i in range(FACEMESH_NUM_LANDMARKS_WITH_IRISES):
+                for axis in ['X_', 'Y_', 'Z_']:
+                    _data[axis + str(i)] = pd.Series([], dtype=np.float64)
 
             self.blendshapes = ['_neutral', 'browDownLeft', 'browDownRight', 'browInnerUp', 'browOuterUpLeft',
                                 'browOuterUpRight', 'cheekPuff', 'cheekSquintLeft', 'cheekSquintRight',
@@ -185,7 +185,7 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
         self.modified = False
         self.modelReset.emit()
 
-    def get_sample(self, results):
+    def get_sample(self, results, X = False):
         if not results:
             return None
 
@@ -231,16 +231,22 @@ class TrainDataTableModel(QtCore.QAbstractTableModel):
 
             scale = max(dx, dy, dz)
 
+            for i,lm in enumerate(landmark):
+                sample.append((lm.x - min_x - dx / 2.) / scale + 0.5)
+                sample.append((lm.y - min_y - dy / 2.) / scale + 0.5)
+                sample.append((lm.z - min_z - dz / 2.) / scale + 0.5)
+
             if self.type == TrainDataTableModel.EMOTIONS_TYPE : # Лицо
                 for i in range(len(self.blendshapes)):
                     sample.append(results.face_blendshapes[0][i].score)
-            else:
-                for i,lm in enumerate(landmark):
-                    sample.append((lm.x - min_x - dx / 2.) / scale + 0.5)
-                    sample.append((lm.y - min_y - dy / 2.) / scale + 0.5)
-                    sample.append((lm.z - min_z - dz / 2.) / scale + 0.5)
 
-            return sample
+            if X:
+                if self.type == TrainDataTableModel.EMOTIONS_TYPE:
+                    return sample[-len(self.blendshapes):]
+                else:
+                    return sample
+            else:
+                return sample
         except Exception as e:
             print(f"{e}")
         return None

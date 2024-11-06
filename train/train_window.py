@@ -106,7 +106,7 @@ class TrainWindow(QMainWindow):
         # Активна вкладка "Распознавание"
         if self.model and self.ui.tabClassification.isVisible():
             try:
-                sample = self.train_data_model.get_sample(results)
+                sample = self.train_data_model.get_sample(results, True)
                 if sample:
                     input = torch.unsqueeze(torch.tensor(sample).double(), dim=0).to(self.device)
                     prediction = self.model(input)
