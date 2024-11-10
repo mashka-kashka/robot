@@ -11,9 +11,9 @@ from sklearn.model_selection import train_test_split
 from tensorflow.python.ops.metrics_impl import accuracy
 from torch import layout
 
-from train.emotions_model import EmotionsNet
+from models.emotions_model import EmotionsNet
 from train.torch_dataset import TorchDataset
-from train.gestures_model import GesturesNet
+from models.gestures_model import GesturesNet
 from train.labels_data_table_model import LabelsDataTableModel
 from train.train_data_table_model import TrainDataTableModel
 from train_window_ui import Ui_TrainWindow

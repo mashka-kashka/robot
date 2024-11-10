@@ -75,8 +75,7 @@ class TrainApp(QApplication):
     def frame_captured(self, frame):
         mode = self.window.get_mode()
         if mode == TrainWindow.EMOTIONS_MODE:
-            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame
-                                )
+            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
             self.face_results = self.face_detector.detect(mp_image)
             if self.face_results.face_landmarks:
                 for idx in range(len(self.face_results.face_landmarks)):

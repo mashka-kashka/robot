@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>829</width>
-    <height>585</height>
+    <width>759</width>
+    <height>627</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -21,133 +21,48 @@
    <enum>Qt::ToolButtonIconOnly</enum>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QGridLayout" name="gridLayout_2">
+   <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
-     <widget class="QSplitter" name="splitter">
+     <widget class="QTabWidget" name="tabWidget">
       <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
-        <horstretch>0</horstretch>
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>1</horstretch>
         <verstretch>1</verstretch>
        </sizepolicy>
       </property>
       <property name="minimumSize">
        <size>
-        <width>200</width>
-        <height>300</height>
+        <width>0</width>
+        <height>320</height>
        </size>
       </property>
-      <property name="baseSize">
-       <size>
-        <width>1</width>
-        <height>1</height>
-       </size>
+      <property name="currentIndex">
+       <number>0</number>
       </property>
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
+      <widget class="QWidget" name="tabCamera">
+       <attribute name="icon">
+        <iconset>
+         <normaloff>icons/eye.png</normaloff>icons/eye.png</iconset>
+       </attribute>
+       <attribute name="title">
+        <string>Камера</string>
+       </attribute>
+       <layout class="QGridLayout" name="gridLayout_3">
+        <item row="0" column="0">
+         <widget class="QGraphicsView" name="gv_camera"/>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+    <item row="1" column="0">
+     <widget class="QTextEdit" name="teLog">
+      <property name="frameShape">
+       <enum>QFrame::Panel</enum>
       </property>
-      <widget class="QTabWidget" name="tabWidget">
-       <property name="minimumSize">
-        <size>
-         <width>0</width>
-         <height>320</height>
-        </size>
-       </property>
-       <property name="currentIndex">
-        <number>1</number>
-       </property>
-       <widget class="QWidget" name="tabCamera">
-        <property name="maximumSize">
-         <size>
-          <width>807</width>
-          <height>290</height>
-         </size>
-        </property>
-        <attribute name="icon">
-         <iconset>
-          <normaloff>icons/eye.png</normaloff>icons/eye.png</iconset>
-        </attribute>
-        <attribute name="title">
-         <string>Камера</string>
-        </attribute>
-        <layout class="QGridLayout" name="gridLayout_3">
-         <item row="0" column="0">
-          <widget class="QGraphicsView" name="gv_camera"/>
-         </item>
-        </layout>
-       </widget>
-       <widget class="QWidget" name="tabGestures">
-        <attribute name="icon">
-         <iconset>
-          <normaloff>icons/hand.png</normaloff>icons/hand.png</iconset>
-        </attribute>
-        <attribute name="title">
-         <string>Жесты</string>
-        </attribute>
-        <layout class="QGridLayout" name="gridLayout_4">
-         <item row="0" column="0">
-          <layout class="QGridLayout" name="gridLayout" columnstretch="1,1">
-           <property name="sizeConstraint">
-            <enum>QLayout::SetMaximumSize</enum>
-           </property>
-           <item row="1" column="1">
-            <widget class="QGraphicsView" name="gv_right_hand"/>
-           </item>
-           <item row="1" column="0">
-            <widget class="QGraphicsView" name="gv_left_hand"/>
-           </item>
-           <item row="0" column="0" colspan="2">
-            <widget class="QLabel" name="label_2">
-             <property name="styleSheet">
-              <string notr="true">font: 20pt &quot;Noto Color Emoji&quot;;</string>
-             </property>
-             <property name="text">
-              <string>🫶</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignCenter</set>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="0" colspan="2">
-            <widget class="QLabel" name="label">
-             <property name="styleSheet">
-              <string notr="true">font: 20pt &quot;Noto Color Emoji&quot;;</string>
-             </property>
-             <property name="text">
-              <string>🖐✋👌🤌🤏✌🤟👍👎✊</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignCenter</set>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </item>
-        </layout>
-       </widget>
-       <widget class="QWidget" name="tabEmotions">
-        <attribute name="icon">
-         <iconset>
-          <normaloff>icons/smile.png</normaloff>icons/smile.png</iconset>
-        </attribute>
-        <attribute name="title">
-         <string>Эмоции</string>
-        </attribute>
-        <layout class="QGridLayout" name="gridLayout_5">
-         <item row="0" column="0">
-          <widget class="QGraphicsView" name="gv_face"/>
-         </item>
-        </layout>
-       </widget>
-      </widget>
-      <widget class="QTextEdit" name="teLog">
-       <property name="frameShape">
-        <enum>QFrame::Panel</enum>
-       </property>
-       <property name="readOnly">
-        <bool>true</bool>
-       </property>
-      </widget>
+      <property name="readOnly">
+       <bool>true</bool>
+      </property>
      </widget>
     </item>
    </layout>
