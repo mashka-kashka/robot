@@ -1,5 +1,5 @@
 import math
-
+import json
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot, QPoint
 from PyQt6.QtGui import QFont, QImage, QPainter, QPen, QColor
 import mediapipe as mp
@@ -25,7 +25,7 @@ class QRobot(QObject):
     POSE_LANDMARKS = ['LEFT_SHOULDER', 'RIGHT_SHOULDER', 'LEFT_ELBOW', 'RIGHT_ELBOW', 'LEFT_HIP', 'RIGHT_HIP',
                        'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_ANKLE', 'RIGHT_ANKLE', 'LEFT_HEEL', 'RIGHT_HEEL',
                        'LEFT_FOOT_INDEX', 'RIGHT_FOOT_INDEX']
-    POSE_LANDMARK_IDS = list(range(11, 17)) + list(range(23, 33))
+    POSE_LANDMARK_IDS = list(range(11, 15)) + list(range(23, 33))
     ROBOT_SEGMENTS = [[25, 23, 21, 22, 24, 26], [21, 27, 29, 31, 33, 35, 31], [22, 28, 30, 32, 34, 36, 32], [27, 28]]
     ARM_PREFIXES = ['LEFT_', 'RIGHT_']
 
@@ -74,6 +74,7 @@ class QRobot(QObject):
         x_min = x_max = None
         y_min = y_max = None
         z_min = z_max = None
+        visible = False
         data = None
         if input_list:
             for lm in input_list:
@@ -89,12 +90,14 @@ class QRobot(QObject):
                     y_max = min(1.0, lm.y)
                 if not z_max or lm.z > z_max:
                     z_max = min(1.0, lm.z)
-            data = (x_min, x_max, y_min, y_max, z_min, z_max)
+                if x_min > 0.0 or x_max < 1.0 or y_min > 0.0 or y_max < 1.0:
+                    visible = True
+            data = {'visible': visible, 'x_min': x_min, 'x_max': x_max, 'y_min': y_min, 'y_max': y_max, 'z_min': z_min,
+                    'z_max': z_max}
         return data
     # Обработка кадра
     def process_frame(self, image):
-        bounds = []
-        bounds_index = []
+        data = {}
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image)
 
         # Распознавание лиц
@@ -102,32 +105,38 @@ class QRobot(QObject):
         annotated_image = self.draw_faces_on_image(image, face_detection_result)
 
         if len(face_detection_result.face_landmarks) > 0:
-            bounds.append(self.get_ranges(face_detection_result.face_landmarks[0]))
-            bounds_index.append('Лицо')
+            data['Лицо'] = self.get_ranges(face_detection_result.face_landmarks[0])
 
         # Распознавание рук и поз
         hand_detection_results = self.hand_detector.process(image)
         hand_landmarks_list = hand_detection_results.multi_hand_landmarks
         if hand_landmarks_list:
             for idx, lm in enumerate(hand_landmarks_list):
-                bounds.append(self.get_ranges(lm.landmark))
+                bounds = self.get_ranges(lm.landmark)
                 classification = hand_detection_results.multi_handedness[idx].classification[0]
-                bounds_index.append("Правая рука" if classification.label == 'Left' else "Левая рука")
+                data["Правая ладонь" if classification.label == 'Left' else "Левая ладонь"] = bounds
 
-            data = pd.DataFrame.from_records(bounds, columns=['X_MIN', 'X_MAX', 'Y_MIN', 'Y_MAX', 'Z_MIN', 'Z_MAX'],
-                                             index=bounds_index)
-
-            x = y = z = []
-
+        sceleton = {}
         pose_detection_result = self.pose_detector.detect(mp_image)
         pose_landmarks_list = pose_detection_result.pose_landmarks
         if pose_landmarks_list:
-            pass
+            for i, idx in enumerate(QRobot.POSE_LANDMARK_IDS):
+                lm = pose_landmarks_list[0][idx]
+                if lm.visibility > 0.9:
+                    sceleton[QRobot.POSE_LANDMARKS[i]] = {'x': lm.x, 'y': lm.y, 'z': lm.z}
 
-        x = y = z = []
         if hand_landmarks_list:
-            for lm in hand_landmarks_list:
-                pass
+            for idx, lm in enumerate(hand_landmarks_list):
+                is_right_palm = hand_detection_results.multi_handedness[idx].classification[0].label == 'Left'
+                for pidx, pt in enumerate(lm.landmark):
+                    if is_right_palm:
+                        sceleton['RIGHT_' + QRobot.HAND_LANDMARKS[pidx]] = {'x': pt.x, 'y': pt.y, 'z': pt.z}
+                    else:
+                        sceleton['LEFT_' + QRobot.HAND_LANDMARKS[pidx]] = {'x': pt.x, 'y': pt.y, 'z': pt.z}
+
+            data['Скелет'] = sceleton
+            with open("sample.json", "w") as outfile:
+                json.dump(data, outfile)
 
         #annotated_image = self.draw_poses_on_image(annotated_image, pose_detection_result, hand_detection_results)
         #annotated_image = self.draw_hands_on_image(annotated_image, hand_detection_results)
