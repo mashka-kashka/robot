@@ -26,17 +26,20 @@ class QRobot(QObject):
                        'LEFT_KNEE', 'RIGHT_KNEE', 'LEFT_ANKLE', 'RIGHT_ANKLE', 'LEFT_HEEL', 'RIGHT_HEEL',
                        'LEFT_FOOT_INDEX', 'RIGHT_FOOT_INDEX']
     POSE_LANDMARK_IDS = list(range(11, 15)) + list(range(23, 33))
-    ROBOT_SEGMENTS = [[25, 23, 21, 22, 24, 26], [21, 27, 29, 31, 33, 35, 31], [22, 28, 30, 32, 34, 36, 32], [27, 28]]
+    ROBOT_SEGMENTS = ([[0, 1, 2, 3, 4], [0, 5, 6, 7, 8], [0, 17, 18, 19, 20], [9, 10, 11, 12], [13, 14, 15, 16],
+                      [5, 9, 13, 17], [21, 22, 23, 24, 25], [21, 26, 27, 28, 29], [21, 38, 39, 40, 41],
+                      [30, 31, 32, 33], [34, 35, 36, 37], [26, 30, 34, 38], [0, 44, 42, 43, 45, 21],
+                      [43, 47, 49, 51, 53, 55, 51], [42, 46, 48, 50, 52, 54, 50], [46, 47]])
     ARM_PREFIXES = ['LEFT_', 'RIGHT_']
 
     def __init__(self):
         super().__init__()
 
         self.red_pen = QPen()
-        self.red_pen.setWidth(2)
+        self.red_pen.setWidth(3)
         self.red_pen.setColor(QColor(200, 0, 0))
         self.green_pen = QPen()
-        self.green_pen.setWidth(2)
+        self.green_pen.setWidth(3)
         self.green_pen.setColor(QColor(0, 200, 0))
         self.emoji_font = QFont("Noto Color Emoji", 64)
         self.robot_data = {}
@@ -70,7 +73,7 @@ class QRobot(QObject):
                                               num_faces=1)
         self.face_detector = vision.FaceLandmarker.create_from_options(options)
 
-    def get_ranges(self, input_list):
+    def get_ranges(self, input_list, width, height):
         x_min = x_max = None
         y_min = y_max = None
         z_min = z_max = None
@@ -92,27 +95,31 @@ class QRobot(QObject):
                     z_max = min(1.0, lm.z)
                 if x_min > 0.0 or x_max < 1.0 or y_min > 0.0 or y_max < 1.0:
                     visible = True
-            data = {'visible': visible, 'x_min': x_min, 'x_max': x_max, 'y_min': y_min, 'y_max': y_max, 'z_min': z_min,
-                    'z_max': z_max}
+            data = {'visible': visible, 'x_min': x_min, 'x_max': x_max,
+                    'y_min': y_min, 'y_max': y_max, 'z_min': z_min, 'z_max': z_max,
+                    'rect': (int(x_min * width), int(y_min * height), int(x_max * width), int(y_max * height))}
         return data
     # Обработка кадра
     def process_frame(self, image):
-        data = {}
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=image)
+        height = mp_image.height
+        width = mp_image.width
+
+        data = {'Кадр' : {'Ширина' : width, 'Высота' : height}}
 
         # Распознавание лиц
         face_detection_result = self.face_detector.detect(mp_image)
         annotated_image = self.draw_faces_on_image(image, face_detection_result)
 
         if len(face_detection_result.face_landmarks) > 0:
-            data['Лицо'] = self.get_ranges(face_detection_result.face_landmarks[0])
+            data['Лицо'] = self.get_ranges(face_detection_result.face_landmarks[0], width, height)
 
         # Распознавание рук и поз
         hand_detection_results = self.hand_detector.process(image)
         hand_landmarks_list = hand_detection_results.multi_hand_landmarks
         if hand_landmarks_list:
             for idx, lm in enumerate(hand_landmarks_list):
-                bounds = self.get_ranges(lm.landmark)
+                bounds = self.get_ranges(lm.landmark, width, height)
                 classification = hand_detection_results.multi_handedness[idx].classification[0]
                 data["Правая ладонь" if classification.label == 'Left' else "Левая ладонь"] = bounds
 
@@ -123,25 +130,54 @@ class QRobot(QObject):
             for i, idx in enumerate(QRobot.POSE_LANDMARK_IDS):
                 lm = pose_landmarks_list[0][idx]
                 if lm.visibility > 0.9:
-                    sceleton[QRobot.POSE_LANDMARKS[i]] = {'x': lm.x, 'y': lm.y, 'z': lm.z}
+                    sceleton[QRobot.POSE_LANDMARKS[i]] = {'x': lm.x, 'y': lm.y, 'z': lm.z,
+                                                          'point': (int(lm.x * width), int(lm.y * height))}
 
         if hand_landmarks_list:
             for idx, lm in enumerate(hand_landmarks_list):
                 is_right_palm = hand_detection_results.multi_handedness[idx].classification[0].label == 'Left'
                 for pidx, pt in enumerate(lm.landmark):
                     if is_right_palm:
-                        sceleton['RIGHT_' + QRobot.HAND_LANDMARKS[pidx]] = {'x': pt.x, 'y': pt.y, 'z': pt.z}
+                        sceleton['RIGHT_' + QRobot.HAND_LANDMARKS[pidx]] = {'x': pt.x, 'y': pt.y, 'z': pt.z,
+                                                                            'point': (int(pt.x * width),
+                                                                                      int(pt.y * height))}
                     else:
-                        sceleton['LEFT_' + QRobot.HAND_LANDMARKS[pidx]] = {'x': pt.x, 'y': pt.y, 'z': pt.z}
+                        sceleton['LEFT_' + QRobot.HAND_LANDMARKS[pidx]] = {'x': pt.x, 'y': pt.y, 'z': pt.z,
+                                                                           'point': (int(pt.x * width),
+                                                                                     int(pt.y * height))}
 
-            data['Скелет'] = sceleton
-            with open("sample.json", "w") as outfile:
-                json.dump(data, outfile)
+        data['Скелет'] = sceleton
+#        with open("sceleton.json", "w") as outfile:
+#            json.dump(data, outfile)
+
+        annotated_image = self.draw_sceleton_on_image(annotated_image, data)
 
         #annotated_image = self.draw_poses_on_image(annotated_image, pose_detection_result, hand_detection_results)
         #annotated_image = self.draw_hands_on_image(annotated_image, hand_detection_results)
 
         return annotated_image
+
+    def draw_sceleton_on_image(self, image, data):
+        painter = QPainter(image)
+        painter.setFont(self.emoji_font)
+        #painter.drawText(QPoint(5, 75), "😀")
+        sceleton = data['Скелет']
+        painter.setPen(self.green_pen)
+        for segment in QRobot.ROBOT_SEGMENTS:
+            for i in range(1, len(segment)):
+                start_lm = self.ROBOT_LANDMARKS[segment[i - 1]]
+                if not start_lm in sceleton:
+                    continue
+
+                end_lm = self.ROBOT_LANDMARKS[segment[i]]
+                if not end_lm in sceleton:
+                    continue
+
+                a = sceleton[start_lm]['point']
+                b = sceleton[end_lm]['point']
+                painter.drawLine(a[0], a[1], b[0], b[1])
+        painter.end()
+        return image
 
     def draw_poses_on_image(self, rgb_image, pose_detection_result, hand_detection_results):
         height = rgb_image.height()
